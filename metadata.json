@@ -1,0 +1,6 @@
+{
+  "name": "Employee Leave Management System",
+  "description": "An MIS Approach to streamline tracking, approval workflows, and leave balance calculations for HR departments.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
