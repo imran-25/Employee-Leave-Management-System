@@ -30,6 +30,8 @@ export interface LeaveApplyPayload {
   duration: number;
   reason: string;
   refinedReason?: string;
+  attachmentName?: string; // name of supporting document
+  attachmentData?: string; // base64 representation of supporting document
 }
 
 export async function applyLeave(payload: LeaveApplyPayload): Promise<{ success: boolean; request: LeaveRequest; database: ELMSDatabase }> {
@@ -97,6 +99,32 @@ export async function refineText(payload: RefineTextPayload): Promise<{ refinedT
   if (!response.ok) {
     const errData = await response.json().catch(() => ({}));
     throw new Error(errData.message || errData.error || 'Failed to refine text draft');
+  }
+  return response.json();
+}
+
+export async function loginUser(payload: any): Promise<{ success: boolean; employee: any }> {
+  const response = await fetch('/api/auth/login', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload)
+  });
+  if (!response.ok) {
+    const errData = await response.json().catch(() => ({}));
+    throw new Error(errData.error || 'Authentication credential mismatch');
+  }
+  return response.json();
+}
+
+export async function registerUser(payload: any): Promise<{ success: boolean; employee: any; database: ELMSDatabase }> {
+  const response = await fetch('/api/auth/register', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload)
+  });
+  if (!response.ok) {
+    const errData = await response.json().catch(() => ({}));
+    throw new Error(errData.error || errData.message || 'Registration failed');
   }
   return response.json();
 }

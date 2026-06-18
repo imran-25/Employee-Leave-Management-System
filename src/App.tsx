@@ -7,6 +7,7 @@ import React, { useState, useEffect } from 'react';
 import Header from './components/Header.js';
 import EmployeeDashboard from './components/EmployeeDashboard.js';
 import AdminDashboard from './components/AdminDashboard.js';
+import AuthScreen from './components/AuthScreen.js';
 import { fetchDatabase, resetDatabaseState, applyLeave, approveLeave, rejectLeave } from './client.js';
 import { Employee, LeaveRequest, LeavePolicy, AuditLog, TargetRole } from './types.js';
 import { Layers, RefreshCw, AlertCircle } from 'lucide-react';
@@ -18,7 +19,9 @@ export default function App() {
   const [auditLogs, setAuditLogs] = useState<AuditLog[]>([]);
   
   // App system states
-  const [currentUserId, setCurrentUserId] = useState<string>('EMP-404'); // Alan Turing default
+  const [currentUserId, setCurrentUserId] = useState<string | null>(() => {
+    return localStorage.getItem('elms_user_id') || null;
+  });
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [isResetting, setIsResetting] = useState<boolean>(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
@@ -76,6 +79,8 @@ export default function App() {
     duration: number;
     reason: string;
     refinedReason?: string;
+    attachmentName?: string;
+    attachmentData?: string;
   }) => {
     try {
       const response = await applyLeave(payload);
@@ -84,11 +89,28 @@ export default function App() {
         setLeaves(response.database.leaves);
         setPolicies(response.database.policies);
         setAuditLogs(response.database.auditLogs);
-        alert(`Leave request successfully submitted! Reserved ${payload.duration} days of ${payload.leaveType} leave.`);
+        alert(`Leave request successfully submitted! ${payload.attachmentName ? 'Supporting documentation uploaded.' : ''} Reserved ${payload.duration} days of ${payload.leaveType} leave.`);
       }
     } catch (err: any) {
       throw new Error(err.message || 'Submission failed');
     }
+  };
+
+  // Auth Handling callbacks
+  const handleLoginSuccess = (user: Employee) => {
+    setCurrentUserId(user.id);
+    localStorage.setItem('elms_user_id', user.id);
+  };
+
+  const handleRegisterSuccess = (user: Employee, updatedEmployees: Employee[]) => {
+    setEmployees(updatedEmployees);
+    setCurrentUserId(user.id);
+    localStorage.setItem('elms_user_id', user.id);
+  };
+
+  const handleLogout = () => {
+    setCurrentUserId(null);
+    localStorage.removeItem('elms_user_id');
   };
 
   // Approve Leave Hook
@@ -160,7 +182,7 @@ export default function App() {
         <div className="bg-white p-8 rounded-xl border border-rose-100 shadow-md max-w-md space-y-4">
           <AlertCircle className="h-12 w-12 text-rose-500 mx-auto" />
           <h2 className="text-lg font-bold text-slate-800">Connection Failure</h2>
-          <p className="text-slate-500 text-xs leading-relaxed">{errorMsg}</p>
+          <p className="text-slate-550 text-xs leading-relaxed">{errorMsg}</p>
           <button 
             onClick={() => loadDatabase()} 
             className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold text-xs rounded-lg cursor-pointer transition shadow-sm"
@@ -169,6 +191,17 @@ export default function App() {
           </button>
         </div>
       </div>
+    );
+  }
+
+  // Render authentic Login/Register screen if no user is authenticated
+  if (!activeUser) {
+    return (
+      <AuthScreen
+        employees={employees}
+        onLoginSuccess={handleLoginSuccess}
+        onRegisterSuccess={handleRegisterSuccess}
+      />
     );
   }
 
@@ -181,59 +214,58 @@ export default function App() {
         currentUserId={currentUserId}
         onUserChange={handleUserChange}
         onResetDb={handleResetDb}
+        onLogout={handleLogout}
         isResetting={isResetting}
       />
 
       {/* 2. Main Portal Body */}
-      <main className="flex-grow max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-8">
+      <main className="flex-grow max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-8 animate-fade-in">
         
-        {activeUser && (
-          <div className="space-y-8">
-            
-            {/* Display banner on Admin portal or employee portal */}
-            <div className="bg-white rounded-xl border border-slate-205 p-3 px-4 shadow-sm flex flex-col sm:flex-row justify-between items-baseline gap-2">
-              <div className="flex items-center gap-2">
-                <span className={`h-2.5 w-2.5 rounded-full animate-pulse ${
-                  activeUser.role === TargetRole.HR || activeUser.role === TargetRole.MANAGER ? 'bg-indigo-600' : 'bg-emerald-500'
-                }`} />
-                <span className="text-xs text-slate-500 font-mono">
-                  ELMS PORTAL VIEW: <strong className="text-slate-800 uppercase">{activeUser.role} CONSOLE</strong>
-                </span>
-              </div>
-
-              <div className="text-[11px] text-slate-400 font-medium">
-                {activeUser.role === TargetRole.HR || activeUser.role === TargetRole.MANAGER ? (
-                  <span>Permissions: Full read/write audit ledger, approval triggers.</span>
-                ) : (
-                  <span>Permissions: Personal balance calculations, submit requests, AI Text refiner.</span>
-                )}
-              </div>
+        <div className="space-y-8">
+          
+          {/* Display banner on Admin portal or employee portal */}
+          <div className="bg-white rounded-xl border border-slate-200 p-3 px-4 shadow-sm flex flex-col sm:flex-row justify-between items-baseline gap-2">
+            <div className="flex items-center gap-2">
+              <span className={`h-2.5 w-2.5 rounded-full animate-pulse ${
+                activeUser.role === TargetRole.HR || activeUser.role === TargetRole.MANAGER ? 'bg-indigo-600' : 'bg-emerald-500'
+              }`} />
+              <span className="text-xs text-slate-500 font-mono">
+                ELMS PORTAL VIEW: <strong className="text-slate-800 uppercase">{activeUser.role} CONSOLE</strong>
+              </span>
             </div>
 
-            {/* Portal Switch View routing */}
-            {activeUser.role === TargetRole.HR || activeUser.role === TargetRole.MANAGER ? (
-              <AdminDashboard
-                currentUser={activeUser}
-                employees={employees}
-                leaves={leaves}
-                policies={policies}
-                auditLogs={auditLogs}
-                onApproveLeave={onApproveLeave}
-                onRejectLeave={onRejectLeave}
-                isProcessing={isResetting}
-              />
-            ) : (
-              <EmployeeDashboard
-                employee={activeUser}
-                leaves={leaves}
-                policies={policies}
-                onSubmitLeave={onSubmitLeave}
-                isSubmitting={isResetting}
-              />
-            )}
-
+            <div className="text-[11px] text-slate-400 font-medium">
+              {activeUser.role === TargetRole.HR || activeUser.role === TargetRole.MANAGER ? (
+                <span>Permissions: Full read/write audit ledger, approval triggers.</span>
+              ) : (
+                <span>Permissions: Personal balance calculations, submit requests, AI Text refiner.</span>
+              )}
+            </div>
           </div>
-        )}
+
+          {/* Portal Switch View routing */}
+          {activeUser.role === TargetRole.HR || activeUser.role === TargetRole.MANAGER ? (
+            <AdminDashboard
+              currentUser={activeUser}
+              employees={employees}
+              leaves={leaves}
+              policies={policies}
+              auditLogs={auditLogs}
+              onApproveLeave={onApproveLeave}
+              onRejectLeave={onRejectLeave}
+              isProcessing={isResetting}
+            />
+          ) : (
+            <EmployeeDashboard
+              employee={activeUser}
+              leaves={leaves}
+              policies={policies}
+              onSubmitLeave={onSubmitLeave}
+              isSubmitting={isResetting}
+            />
+          )}
+
+        </div>
 
       </main>
 

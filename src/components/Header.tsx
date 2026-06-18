@@ -9,9 +9,10 @@ import { Employee } from '../types.js';
 
 interface HeaderProps {
   employees: Employee[];
-  currentUserId: string;
+  currentUserId: string | null;
   onUserChange: (userId: string) => void;
   onResetDb: () => void;
+  onLogout: () => void;
   isResetting: boolean;
 }
 
@@ -20,6 +21,7 @@ export default function Header({
   currentUserId,
   onUserChange,
   onResetDb,
+  onLogout,
   isResetting
 }: HeaderProps) {
   const currentUser = employees.find(e => e.id === currentUserId);
@@ -50,23 +52,25 @@ export default function Header({
           <div className="flex flex-wrap items-center gap-3 md:self-center">
             
             {/* Simulation Context Selector */}
-            <div className="bg-slate-800 border border-slate-700 rounded-lg px-2 py-1.5 flex items-center gap-2">
-              <span className="text-slate-400 text-xs font-medium font-mono flex items-center gap-1 pl-1">
-                <Users className="h-3 w-3 text-indigo-400" /> SIMULATE AS:
-              </span>
-              <select
-                id="user-sim-selector"
-                value={currentUserId}
-                onChange={(e) => onUserChange(e.target.value)}
-                className="bg-slate-900 border-0 text-slate-100 text-xs font-semibold rounded p-1 focus:ring-1 focus:ring-indigo-500 cursor-pointer focus:outline-none"
-              >
-                {employees.map(emp => (
-                  <option key={emp.id} value={emp.id}>
-                    {emp.name} ({emp.role} - {emp.department})
-                  </option>
-                ))}
-              </select>
-            </div>
+            {currentUserId && (
+              <div className="bg-slate-800 border border-slate-700 rounded-lg px-2 py-1.5 flex items-center gap-2">
+                <span className="text-slate-400 text-xs font-medium font-mono flex items-center gap-1 pl-1">
+                  <span className="h-2 w-2 rounded-full bg-emerald-400 inline-block animate-pulse" /> DEV SIMULATOR:
+                </span>
+                <select
+                  id="user-sim-selector"
+                  value={currentUserId}
+                  onChange={(e) => onUserChange(e.target.value)}
+                  className="bg-slate-900 border-0 text-slate-100 text-xs font-semibold rounded p-1 focus:ring-1 focus:ring-indigo-500 cursor-pointer focus:outline-none"
+                >
+                  {employees.map(emp => (
+                    <option key={emp.id} value={emp.id}>
+                      {emp.name} ({emp.role} - {emp.department})
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
 
             {/* Reset Database and Logs Trigger */}
             <button
@@ -79,6 +83,17 @@ export default function Header({
               <RefreshCw className={`h-3 w-3 ${isResetting ? 'animate-spin text-indigo-400' : ''}`} />
               RESET SYSTEM
             </button>
+
+            {/* Sign Out Trigger */}
+            {currentUserId && (
+              <button
+                id="header-logout-btn"
+                onClick={onLogout}
+                className="px-3 py-1.5 bg-rose-650 hover:bg-rose-700 text-white rounded-lg text-xs font-medium font-mono transition-all flex items-center gap-1 cursor-pointer"
+              >
+                SIGN OUT
+              </button>
+            )}
             
           </div>
 

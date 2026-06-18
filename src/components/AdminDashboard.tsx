@@ -206,6 +206,28 @@ export default function AdminDashboard({
                         </pre>
                       </div>
                     )}
+
+                    {req.attachmentName && (
+                      <div className="bg-white p-2 rounded border border-slate-205 flex items-center justify-between text-xs mt-1.5 shadow-5xs">
+                        <div className="flex items-center gap-1.5 overflow-hidden">
+                          <FileText className="h-3.5 w-3.5 text-indigo-650 shrink-0" />
+                          <span className="font-semibold text-slate-750 truncate max-w-[150px]" title={req.attachmentName}>
+                            {req.attachmentName}
+                          </span>
+                        </div>
+                        {req.attachmentData && (
+                          <a
+                            href={req.attachmentData}
+                            download={req.attachmentName}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-[9px] font-bold text-indigo-600 bg-indigo-50 hover:bg-indigo-600 hover:text-white px-2 py-0.5 rounded transition"
+                          >
+                            Download
+                          </a>
+                        )}
+                      </div>
+                    )}
                   </div>
                 </div>
 
@@ -433,12 +455,24 @@ export default function AdminDashboard({
                           <span className="text-[10px] text-slate-400 mt-0.5 block">{l.startDate} to {l.endDate}</span>
                         </td>
                         <td className="px-4 py-3.5 max-w-xs">
-                          <p className="truncate text-slate-650" title={l.reason}>{l.reason}</p>
-                          {l.refinedReason && (
-                            <span className="px-1.5 py-0.2 bg-violet-50 text-violet-750 text-[9px] rounded mt-0.5 font-mono font-medium inline-block">
-                              ✓ Gemini Letter Attached
-                            </span>
-                          )}
+                          <p className="truncate text-slate-650 font-medium" title={l.reason}>{l.reason}</p>
+                          <div className="flex flex-wrap gap-1 mt-1">
+                            {l.refinedReason && (
+                              <span className="px-1.5 py-0.2 bg-violet-50 text-violet-750 text-[9px] rounded font-mono font-semibold inline-block border border-violet-100">
+                                ✓ Gemini Letter
+                              </span>
+                            )}
+                            {l.attachmentName && (
+                              <a
+                                href={l.attachmentData || '#'}
+                                download={l.attachmentName}
+                                className="px-1.5 py-0.2 bg-indigo-50 hover:bg-indigo-100 text-indigo-750 hover:text-indigo-900 text-[9px] rounded font-mono font-semibold inline-flex items-center gap-0.5 border border-indigo-100 transition"
+                                title={`Download: ${l.attachmentName}`}
+                              >
+                                📎 Support Doc
+                              </a>
+                            )}
+                          </div>
                         </td>
                         <td className="px-4 py-3.5">
                           <span className={`px-2.5 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider font-mono ${

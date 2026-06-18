@@ -29,6 +29,7 @@ export interface Employee {
   id: string; // EMP-001, etc.
   name: string;
   email: string;
+  password?: string; // added for login & registration support
   role: TargetRole;
   department: string;
   joinDate: string;
@@ -46,6 +47,8 @@ export interface LeaveRequest {
   duration: number; // in days
   reason: string;
   refinedReason?: string; // AI refined text
+  attachmentName?: string; // name of uploaded PDF or image
+  attachmentData?: string; // base64 representation of PDF or image for display
   status: LeaveStatus;
   requestedAt: string;
   approvedOrRejectedAt?: string;

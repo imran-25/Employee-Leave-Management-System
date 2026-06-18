@@ -66,7 +66,7 @@ app.post('/api/db/reset', (req, res) => {
 // 3. Apply for Leave
 app.post('/api/leaves/apply', (req, res) => {
   try {
-    const { employeeId, leaveType, startDate, endDate, duration, reason, refinedReason } = req.body;
+    const { employeeId, leaveType, startDate, endDate, duration, reason, refinedReason, attachmentName, attachmentData } = req.body;
     
     if (!employeeId || !leaveType || !startDate || !endDate || !duration || !reason) {
       return res.status(400).json({ error: 'Missing mandatory leave fields' });
@@ -113,6 +113,8 @@ app.post('/api/leaves/apply', (req, res) => {
       duration,
       reason,
       refinedReason: refinedReason || undefined,
+      attachmentName: attachmentName || undefined,
+      attachmentData: attachmentData || undefined,
       status: LeaveStatus.PENDING,
       requestedAt: new Date().toISOString()
     };
@@ -125,7 +127,7 @@ app.post('/api/leaves/apply', (req, res) => {
       timestamp: new Date().toISOString(),
       actorName: employee.name,
       action: 'SUBMIT_LEAVE',
-      details: `${employee.name} requested ${duration} days of ${leaveType} leave (From: ${startDate} To: ${endDate}).`
+      details: `${employee.name} requested ${duration} days of ${leaveType} leave ${attachmentName ? 'with documentation attached' : ''} (From: ${startDate} To: ${endDate}).`
     };
     db.auditLogs.unshift(newLog);
 
@@ -133,6 +135,96 @@ app.post('/api/leaves/apply', (req, res) => {
     res.json({ success: true, request: newRequest, database: db });
   } catch (err: any) {
     res.status(500).json({ error: 'Failed to process leave application', message: err.message });
+  }
+});
+
+// Added AUTH endpoints: Register & Login (making the system completely authentic for human use)
+app.post('/api/auth/register', (req, res) => {
+  try {
+    const { name, email, password, department, role } = req.body;
+    
+    if (!name || !email || !password || !department || !role) {
+      return res.status(400).json({ error: 'Please populate name, email, password, department and role.' });
+    }
+
+    const db = getDatabase();
+    
+    // Check if email already used
+    const existing = db.employees.find(emp => emp.email.toLowerCase() === email.toLowerCase());
+    if (existing) {
+      return res.status(400).json({ error: 'This email is already registered inside our corporate network.' });
+    }
+
+    // Generate unique employee ID
+    const newId = `EMP-${Math.floor(100 + Math.random() * 900)}`;
+
+    const newEmployee = {
+      id: newId,
+      name,
+      email,
+      password,
+      role: role as TargetRole,
+      department,
+      joinDate: new Date().toISOString().split('T')[0],
+      balances: {
+        Annual: 20,
+        Sick: 10,
+        Casual: 7,
+        Parental: 60,
+        Unpaid: 30
+      }
+    };
+
+    db.employees.push(newEmployee);
+
+    // Dynamic audit log on registration
+    const newLog: AuditLog = {
+      id: `LOG-${Math.floor(1000 + Math.random() * 9000)}`,
+      timestamp: new Date().toISOString(),
+      actorName: 'SYSTEM',
+      action: 'REGISTER_EMPLOYEE',
+      details: `New employee registered: ${name} as ${role} inside the ${department} department.`
+    };
+    db.auditLogs.unshift(newLog);
+
+    writeDatabase(db);
+    res.json({ success: true, employee: newEmployee, database: db });
+  } catch (err: any) {
+    res.status(500).json({ error: 'Failed to complete registration flow', message: err.message });
+  }
+});
+
+app.post('/api/auth/login', (req, res) => {
+  try {
+    const { email, password } = req.body;
+    if (!email || !password) {
+      return res.status(400).json({ error: 'Please supply a corporate email and secure password.' });
+    }
+
+    const db = getDatabase();
+    const user = db.employees.find(emp => emp.email.toLowerCase() === email.toLowerCase());
+    
+    if (!user) {
+      return res.status(401).json({ error: 'Account not found inside the network database.' });
+    }
+
+    if (user.password !== password) {
+      return res.status(401).json({ error: 'Unregistered security credential mismatches.' });
+    }
+
+    const newLog: AuditLog = {
+      id: `LOG-${Math.floor(1000 + Math.random() * 9000)}`,
+      timestamp: new Date().toISOString(),
+      actorName: user.name,
+      action: 'LOGIN_PORTAL',
+      details: `${user.name} logged into the portal safely via simulated secure tunnel.`
+    };
+    db.auditLogs.unshift(newLog);
+    writeDatabase(db);
+
+    res.json({ success: true, employee: user });
+  } catch (err: any) {
+    res.status(500).json({ error: 'Authentication service down', message: err.message });
   }
 });
 

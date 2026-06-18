@@ -17,7 +17,10 @@ import {
   Info,
   ChevronDown,
   ChevronUp,
-  RotateCcw
+  RotateCcw,
+  Paperclip,
+  Trash2,
+  Upload
 } from 'lucide-react';
 import { Employee, LeaveRequest, LeavePolicy, LeaveType, LeaveStatus } from '../types.js';
 import { refineText } from '../client.js';
@@ -34,6 +37,8 @@ interface EmployeeDashboardProps {
     duration: number;
     reason: string;
     refinedReason?: string;
+    attachmentName?: string;
+    attachmentData?: string;
   }) => Promise<void>;
   isSubmitting: boolean;
 }
@@ -55,6 +60,11 @@ export default function EmployeeDashboard({
   const [duration, setDuration] = useState(0);
   const [reason, setReason] = useState('');
   
+  // Custom File Attachment states (crafted specifically for supporting document compliance, e.g. medical certificates)
+  const [attachmentName, setAttachmentName] = useState('');
+  const [attachmentData, setAttachmentData] = useState('');
+  const [isDragging, setIsDragging] = useState(false);
+
   // Text Refine states
   const [isRefining, setIsRefining] = useState(false);
   const [refinedOutput, setRefinedOutput] = useState('');
@@ -160,13 +170,17 @@ export default function EmployeeDashboard({
         endDate,
         duration,
         reason,
-        refinedReason: useRefined ? refinedOutput : undefined
+        refinedReason: useRefined ? refinedOutput : undefined,
+        attachmentName: attachmentName || undefined,
+        attachmentData: attachmentData || undefined
       });
 
       // Clear Form state upon successful application
       setStartDate('');
       setEndDate('');
       setReason('');
+      setAttachmentName('');
+      setAttachmentData('');
       setRefinedOutput('');
       setShowRefinerPreview(false);
       setUseRefined(false);
@@ -477,6 +491,117 @@ export default function EmployeeDashboard({
                     )}
                   </AnimatePresence>
 
+                  {/* Supporting Document Upload Desk (image or PDF, specifically requested for Sick/Parental leaves) */}
+                  <div className="space-y-2">
+                    <div className="flex justify-between items-baseline">
+                      <label className="text-xs font-semibold text-slate-600 flex items-center gap-1.5">
+                        <Paperclip className="h-3.5 w-3.5 text-indigo-500" /> Supporting Documentation 
+                        <span className="text-slate-400 font-normal">(Optional)</span>
+                      </label>
+                      {(leaveType === 'Sick' || leaveType === 'Parental') && (
+                        <span className="text-[10px] text-rose-500 font-semibold bg-rose-50 px-1.5 py-0.5 rounded border border-rose-100">
+                          Recommended for {leaveType} category
+                        </span>
+                      )}
+                    </div>
+
+                    {!attachmentName ? (
+                      <div
+                        onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
+                        onDragLeave={() => setIsDragging(false)}
+                        onDrop={(e) => {
+                          e.preventDefault();
+                          setIsDragging(false);
+                          if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+                            const file = e.dataTransfer.files[0];
+                            const allowedTypes = ['image/png', 'image/jpeg', 'image/webp', 'image/gif', 'application/pdf'];
+                            if (!allowedTypes.includes(file.type)) {
+                              alert('Only images or PDF files are supported for clinical/statutory audit records.');
+                              return;
+                            }
+                            const reader = new FileReader();
+                            reader.onload = () => {
+                              setAttachmentName(file.name);
+                              setAttachmentData(reader.result as string);
+                            };
+                            reader.readAsDataURL(file);
+                          }
+                        }}
+                        className={`border-2 border-dashed rounded-xl p-6 text-center transition-all ${
+                          isDragging 
+                            ? 'border-indigo-600 bg-indigo-50/40 scale-[0.99]' 
+                            : 'border-slate-200 bg-slate-50 hover:bg-slate-100/50 hover:border-slate-350'
+                        }`}
+                      >
+                        <div className="flex flex-col items-center justify-center gap-2">
+                          <div className="bg-white p-2.5 rounded-full shadow-sm text-slate-400 border border-slate-150">
+                            <Upload className="h-4.5 w-4.5 text-indigo-500" />
+                          </div>
+                          
+                          <div className="text-xs text-slate-600 font-medium">
+                            <label className="text-indigo-600 hover:text-indigo-800 font-semibold cursor-pointer underline decoration-dotted underline-offset-2">
+                              Choose a certificate
+                              <input
+                                type="file"
+                                accept="image/*,application/pdf"
+                                className="hidden"
+                                onChange={(e) => {
+                                  if (e.target.files && e.target.files[0]) {
+                                    const file = e.target.files[0];
+                                    const allowedTypes = ['image/png', 'image/jpeg', 'image/webp', 'image/gif', 'application/pdf'];
+                                    if (!allowedTypes.includes(file.type)) {
+                                      alert('Only images or PDF files are supported for clinical/statutory audit records.');
+                                      return;
+                                    }
+                                    const reader = new FileReader();
+                                    reader.onload = () => {
+                                      setAttachmentName(file.name);
+                                      setAttachmentData(reader.result as string);
+                                    };
+                                    reader.readAsDataURL(file);
+                                  }
+                                }}
+                              />
+                            </label>
+                            {' '}or drag it here
+                          </div>
+                          
+                          <p className="text-[10px] text-slate-400">
+                            Supports PDF, PNG, JPEG, or WebP (e.g., Medical Certificate, Parental Leave proof)
+                          </p>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="bg-slate-50 border border-slate-200 rounded-xl p-3.5 flex items-center justify-between gap-3">
+                        <div className="flex items-center gap-3 overflow-hidden">
+                          <div className="bg-indigo-50 p-2 rounded-lg text-indigo-600 border border-indigo-100 shrink-0">
+                            <FileText className="h-5 w-5" />
+                          </div>
+                          <div className="min-w-0">
+                            <p className="text-xs font-semibold text-slate-800 truncate animate-fade-in" title={attachmentName}>
+                              {attachmentName}
+                            </p>
+                            <p className="text-[10px] font-mono text-slate-400 mt-0.5 uppercase">
+                              {attachmentName.split('.').pop()} Document Attached
+                            </p>
+                          </div>
+                        </div>
+
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setAttachmentName('');
+                            setAttachmentData('');
+                          }}
+                          className="p-1.5 hover:bg-slate-200 text-slate-400 hover:text-rose-600 rounded-lg transition"
+                          title="Remove attached doc"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </button>
+                      </div>
+                    )}
+                  </div>
+
                   {/* Display Error Message */}
                   {errorMsg && (
                     <div className="p-3 bg-rose-50 border border-rose-100 text-xs text-rose-700 rounded-lg">
@@ -610,6 +735,40 @@ export default function EmployeeDashboard({
                                     </div>
                                   )}
                                 </div>
+
+                                {/* Secure attachment file drawer link if uploaded */}
+                                {leave.attachmentName && (
+                                  <div className="border-t border-slate-100 pt-3.5 space-y-1.5">
+                                    <span className="font-bold text-slate-450 uppercase text-[9px] block font-mono flex items-center gap-1">
+                                      <Paperclip className="h-3 w-3 text-indigo-400" /> SUPPORTING DOCUMENT COMPLIANCE LEDGER
+                                    </span>
+                                    <div className="flex items-center justify-between p-2 bg-slate-50 border border-slate-200/80 rounded-lg max-w-md">
+                                      <div className="flex items-center gap-2.5 overflow-hidden">
+                                        <FileText className="h-4.5 w-4.5 text-indigo-600 shrink-0" />
+                                        <div className="min-w-0">
+                                          <p className="font-semibold text-slate-800 truncate text-[11px]" title={leave.attachmentName}>
+                                            {leave.attachmentName}
+                                          </p>
+                                          <p className="text-[9px] text-indigo-600 font-mono font-semibold">
+                                            {leave.attachmentName.split('.').pop()?.toUpperCase()} Doc Attached
+                                          </p>
+                                        </div>
+                                      </div>
+                                      {leave.attachmentData ? (
+                                        <a 
+                                          href={leave.attachmentData} 
+                                          download={leave.attachmentName}
+                                          title={`Download ${leave.attachmentName} from server`}
+                                          className="text-[10px] font-bold text-indigo-600 hover:text-white bg-indigo-50 hover:bg-indigo-600 px-2.5 py-1 rounded-md transition-all border border-indigo-200/65"
+                                        >
+                                          Download
+                                        </a>
+                                      ) : (
+                                        <span className="text-[10px] text-slate-400 font-mono">Attachment present</span>
+                                      )}
+                                    </div>
+                                  </div>
+                                )}
 
                                 {/* Approver Details / Settlement remarks */}
                                 {leave.status !== LeaveStatus.PENDING && (
