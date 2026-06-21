@@ -7,7 +7,7 @@ import express from 'express';
 import path from 'path';
 import { createServer as createViteServer } from 'vite';
 import { GoogleGenAI } from '@google/genai';
-import { getDatabase, writeDatabase, resetDatabase } from './server_db.js';
+import { getDatabase, writeDatabase, resetDatabase, initDatabaseConnection } from './server_db.js';
 import { TargetRole, LeaveStatus, LeaveType, LeaveRequest, AuditLog } from './src/types.js';
 
 // Load environment variables
@@ -416,6 +416,9 @@ Sincerely,
 
 // Vite Integration (Dev vs Prod mode)
 const startServer = async () => {
+  // Pre-load snapshot cache from MySQL if configured
+  await initDatabaseConnection();
+
   if (process.env.NODE_ENV !== "production") {
     // Development Mode
     const vite = await createViteServer({
