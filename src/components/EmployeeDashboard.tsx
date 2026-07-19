@@ -660,6 +660,7 @@ export default function EmployeeDashboard({
                           key={leave.id} 
                           className={`border rounded-lg transition-all overflow-hidden ${
                             leave.status === LeaveStatus.PENDING ? 'border-amber-100/80 bg-amber-50/10' :
+                            leave.status === LeaveStatus.FORWARDED ? 'border-violet-100/80 bg-violet-50/10' :
                             leave.status === LeaveStatus.APPROVED ? 'border-emerald-100 hover:bg-emerald-50/5' :
                             'border-slate-150 bg-slate-50/20'
                           }`}
@@ -692,13 +693,17 @@ export default function EmployeeDashboard({
                               
                               <span className={`px-2.5 py-1 rounded text-[11px] font-semibold font-mono flex items-center gap-1.5 ${
                                 leave.status === LeaveStatus.PENDING ? 'bg-amber-100 text-amber-800 animate-pulse' :
+                                leave.status === LeaveStatus.FORWARDED ? 'bg-violet-100 text-violet-800 animate-pulse' :
                                 leave.status === LeaveStatus.APPROVED ? 'bg-emerald-100 text-emerald-800' :
-                                'bg-slate-150 text-slate-800'
+                                'bg-rose-100 text-rose-800'
                               }`}>
                                 {leave.status === LeaveStatus.PENDING && <Clock className="h-3 w-3 animate-spin" />}
+                                {leave.status === LeaveStatus.FORWARDED && <Clock className="h-3 w-3 animate-pulse text-violet-500" />}
                                 {leave.status === LeaveStatus.APPROVED && <CheckCircle2 className="h-3 w-3" />}
                                 {leave.status === LeaveStatus.REJECTED && <XCircle className="h-3 w-3" />}
-                                {leave.status.toUpperCase()}
+                                {leave.status === LeaveStatus.PENDING ? 'PENDING MANAGER' :
+                                 leave.status === LeaveStatus.FORWARDED ? 'FORWARDED TO HR' :
+                                 leave.status.toUpperCase()}
                               </span>
 
                               {isExpanded ? <ChevronUp className="h-4 w-4 text-slate-400" /> : <ChevronDown className="h-4 w-4 text-slate-400" />}
@@ -766,6 +771,22 @@ export default function EmployeeDashboard({
                                       ) : (
                                         <span className="text-[10px] text-slate-400 font-mono">Attachment present</span>
                                       )}
+                                    </div>
+                                  </div>
+                                )}
+
+                                {/* Manager recommendation remarks */}
+                                {leave.managerName && (
+                                  <div className="p-3 rounded-lg border border-violet-100 bg-violet-50/35 text-slate-800 flex flex-col gap-1">
+                                    <span className="font-mono font-bold text-[10px] uppercase text-violet-600">
+                                      Manager Review Recommendation
+                                    </span>
+                                    <div className="flex gap-2 text-xs leading-relaxed mt-1">
+                                      <div className="h-1.5 w-1.5 rounded-full shrink-0 mt-1.5 bg-violet-500" />
+                                      <p className="font-sans text-xs">
+                                        <span className="font-semibold">{leave.managerName}: </span>
+                                        "{leave.managerRemarks || 'Recommended and forwarded without custom remarks.'}"
+                                      </p>
                                     </div>
                                   </div>
                                 )}

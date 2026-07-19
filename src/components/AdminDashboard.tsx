@@ -24,7 +24,7 @@ import {
   PlusCircle,
   FileText
 } from 'lucide-react';
-import { Employee, LeaveRequest, LeavePolicy, LeaveStatus, AuditLog } from '../types.js';
+import { Employee, LeaveRequest, LeavePolicy, LeaveStatus, AuditLog, TargetRole } from '../types.js';
 import { refineText } from '../client.js';
 
 interface AdminDashboardProps {
@@ -35,6 +35,7 @@ interface AdminDashboardProps {
   auditLogs: AuditLog[];
   onApproveLeave: (leaveId: string, remarks: string) => Promise<void>;
   onRejectLeave: (leaveId: string, remarks: string) => Promise<void>;
+  onForwardLeave: (leaveId: string, remarks: string) => Promise<void>;
   isProcessing: boolean;
 }
 
@@ -46,12 +47,20 @@ export default function AdminDashboard({
   auditLogs,
   onApproveLeave,
   onRejectLeave,
+  onForwardLeave,
   isProcessing
 }: AdminDashboardProps) {
   const [activeSubTab, setActiveSubTab] = useState<'employees' | 'leaves' | 'policies' | 'audit'>('employees');
   
-  // Pending approvals control
-  const pendingRequests = leaves.filter(l => l.status === LeaveStatus.PENDING);
+  // Pending approvals control - segmented by role-based workflow
+  const pendingRequests = leaves.filter(l => {
+    if (currentUser.role === TargetRole.MANAGER) {
+      return l.status === LeaveStatus.PENDING;
+    } else if (currentUser.role === TargetRole.HR) {
+      return l.status === LeaveStatus.FORWARDED;
+    }
+    return false;
+  });
   const [approverRemarks, setApproverRemarks] = useState<Record<string, string>>({});
   const [statusFilter, setStatusFilter] = useState<string>('ALL');
 
@@ -207,6 +216,20 @@ export default function AdminDashboard({
                       </div>
                     )}
 
+                    {req.managerName && (
+                      <div className="bg-violet-50/70 p-2 rounded border border-violet-100 text-xs">
+                        <span className="text-[9px] font-bold text-violet-750 uppercase font-mono block mb-1">
+                          Manager Recommendation Details
+                        </span>
+                        <div className="text-slate-700">
+                          <strong>Manager:</strong> {req.managerName}
+                        </div>
+                        <div className="text-slate-600 italic mt-0.5">
+                          "{req.managerRemarks || 'Forwarded without remarks.'}"
+                        </div>
+                      </div>
+                    )}
+
                     {req.attachmentName && (
                       <div className="bg-white p-2 rounded border border-slate-205 flex items-center justify-between text-xs mt-1.5 shadow-5xs">
                         <div className="flex items-center gap-1.5 overflow-hidden">
@@ -231,13 +254,19 @@ export default function AdminDashboard({
                   </div>
                 </div>
 
-                {/* HR Action options */}
+                {/* Workflow Action options */}
                 <div className="space-y-2 pt-2 border-t border-slate-100">
                   <div className="space-y-1">
-                    <label className="text-[10px] font-semibold text-slate-500 block font-mono">HR DECISION REMARKS / WORKFLOW NOTES</label>
+                    <label className="text-[10px] font-semibold text-slate-500 block font-mono">
+                      {currentUser.role === TargetRole.MANAGER 
+                        ? 'MANAGER REVIEW REMARKS / RECOMMENDATION NOTES' 
+                        : 'HR HEAD DECISION REMARKS / FINAL SETTLEMENT'}
+                    </label>
                     <input
                       type="text"
-                      placeholder="e.g. Approved standard leave / please reschedule dates"
+                      placeholder={currentUser.role === TargetRole.MANAGER 
+                        ? 'e.g. Recommended, forwarding to HR / looks reasonable...' 
+                        : 'e.g. Approved standard leave / final approval granted'}
                       value={approverRemarks[req.id] || ''}
                       onChange={(e) => setApproverRemarks(prev => ({ ...prev, [req.id]: e.target.value }))}
                       className="bg-slate-50 border border-slate-200 focus:bg-white rounded w-full p-2 text-xs focus:ring-1 focus:ring-amber-500 focus:outline-none"
@@ -254,14 +283,25 @@ export default function AdminDashboard({
                       <XSquare className="h-3.5 w-3.5" /> REJECT REQUEST
                     </button>
                     
-                    <button
-                      id={`approve-btn-${req.id}`}
-                      disabled={isProcessing}
-                      onClick={() => onApproveLeave(req.id, approverRemarks[req.id] || '')}
-                      className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-[11px] rounded shadow-xs transition duration-200 cursor-pointer flex items-center gap-1 disabled:opacity-50"
-                    >
-                      <Check className="h-3.5 w-3.5" /> APPROVE & REDUCT
-                    </button>
+                    {currentUser.role === TargetRole.MANAGER ? (
+                      <button
+                        id={`forward-btn-${req.id}`}
+                        disabled={isProcessing}
+                        onClick={() => onForwardLeave(req.id, approverRemarks[req.id] || '')}
+                        className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold text-[11px] rounded shadow-xs transition duration-200 cursor-pointer flex items-center gap-1 disabled:opacity-50"
+                      >
+                        <Check className="h-3.5 w-3.5" /> FORWARD TO HR
+                      </button>
+                    ) : (
+                      <button
+                        id={`approve-btn-${req.id}`}
+                        disabled={isProcessing}
+                        onClick={() => onApproveLeave(req.id, approverRemarks[req.id] || '')}
+                        className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-[11px] rounded shadow-xs transition duration-200 cursor-pointer flex items-center gap-1 disabled:opacity-50"
+                      >
+                        <Check className="h-3.5 w-3.5" /> APPROVE & DEDUCT
+                      </button>
+                    )}
                   </div>
                 </div>
 
@@ -476,20 +516,33 @@ export default function AdminDashboard({
                         </td>
                         <td className="px-4 py-3.5">
                           <span className={`px-2.5 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider font-mono ${
-                            l.status === LeaveStatus.PENDING ? 'bg-amber-150 text-amber-800' :
+                            l.status === LeaveStatus.PENDING ? 'bg-amber-100 text-amber-800' :
+                            l.status === LeaveStatus.FORWARDED ? 'bg-violet-100 text-violet-800' :
                             l.status === LeaveStatus.APPROVED ? 'bg-emerald-100/80 text-emerald-800' :
-                            'bg-slate-150 text-slate-800'
+                            'bg-rose-100 text-rose-800'
                           }`}>
-                            {l.status}
+                            {l.status === LeaveStatus.PENDING ? 'Pending Manager' :
+                             l.status === LeaveStatus.FORWARDED ? 'Pending HR' :
+                             l.status}
                           </span>
                         </td>
                         <td className="px-4 py-3.5 text-slate-600 max-w-xs italic text-[11px]">
                           {l.status === LeaveStatus.PENDING ? (
-                            <span className="text-slate-400 text-[10px]">Awaiting review...</span>
+                            <span className="text-slate-400 text-[10px]">Awaiting Manager review...</span>
+                          ) : l.status === LeaveStatus.FORWARDED ? (
+                            <span className="text-violet-600 text-[10px] font-medium block">
+                              <strong>Recommended by {l.managerName}: </strong>
+                              "{l.managerRemarks || 'No remarks.'}"
+                            </span>
                           ) : (
                             <span title={l.approverRemarks || ''}>
                               <strong className="text-slate-700 font-semibold font-mono not-italic">{l.approverName}: </strong>
                               "{l.approverRemarks || 'No feedback left.'}"
+                              {l.managerName && (
+                                <span className="block text-[9px] text-slate-400 mt-1 not-italic">
+                                  Initial recommendation: {l.managerName} ("{l.managerRemarks}")
+                                </span>
+                              )}
                             </span>
                           )}
                         </td>

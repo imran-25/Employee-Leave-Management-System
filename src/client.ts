@@ -53,6 +53,12 @@ export interface ApproveRejectPayload {
   remarks: string;
 }
 
+export interface ForwardPayload {
+  leaveId: string;
+  managerName: string;
+  remarks: string;
+}
+
 export async function approveLeave(payload: ApproveRejectPayload): Promise<{ success: boolean; leave: LeaveRequest; database: ELMSDatabase }> {
   const response = await fetch('/api/leaves/approve', {
     method: 'POST',
@@ -62,6 +68,19 @@ export async function approveLeave(payload: ApproveRejectPayload): Promise<{ suc
   if (!response.ok) {
     const errData = await response.json().catch(() => ({}));
     throw new Error(errData.message || errData.error || 'Failed to approve leave request');
+  }
+  return response.json();
+}
+
+export async function forwardLeave(payload: ForwardPayload): Promise<{ success: boolean; leave: LeaveRequest; database: ELMSDatabase }> {
+  const response = await fetch('/api/leaves/forward', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload)
+  });
+  if (!response.ok) {
+    const errData = await response.json().catch(() => ({}));
+    throw new Error(errData.message || errData.error || 'Failed to forward leave request');
   }
   return response.json();
 }

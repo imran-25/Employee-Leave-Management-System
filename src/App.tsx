@@ -8,7 +8,7 @@ import Header from './components/Header.js';
 import EmployeeDashboard from './components/EmployeeDashboard.js';
 import AdminDashboard from './components/AdminDashboard.js';
 import AuthScreen from './components/AuthScreen.js';
-import { fetchDatabase, resetDatabaseState, applyLeave, approveLeave, rejectLeave } from './client.js';
+import { fetchDatabase, resetDatabaseState, applyLeave, approveLeave, rejectLeave, forwardLeave } from './client.js';
 import { Employee, LeaveRequest, LeavePolicy, AuditLog, TargetRole } from './types.js';
 import { Layers, RefreshCw, AlertCircle } from 'lucide-react';
 
@@ -159,6 +159,29 @@ export default function App() {
     }
   };
 
+  // Forward Leave Hook
+  const onForwardLeave = async (leaveId: string, remarks: string) => {
+    try {
+      const currentUserObj = employees.find(e => e.id === currentUserId);
+      const managerName = currentUserObj ? currentUserObj.name : 'Department Manager';
+
+      const response = await forwardLeave({
+        leaveId,
+        managerName,
+        remarks
+      });
+      if (response.success) {
+        setEmployees(response.database.employees);
+        setLeaves(response.database.leaves);
+        setPolicies(response.database.policies);
+        setAuditLogs(response.database.auditLogs);
+        alert('Leave application reviewed, recommended, and successfully forwarded to the HR Head.');
+      }
+    } catch (err: any) {
+      alert('Forwarding failed: ' + err.message);
+    }
+  };
+
   // Retrieve Active simulated user entity
   const activeUser = employees.find(e => e.id === currentUserId);
 
@@ -253,6 +276,7 @@ export default function App() {
               auditLogs={auditLogs}
               onApproveLeave={onApproveLeave}
               onRejectLeave={onRejectLeave}
+              onForwardLeave={onForwardLeave}
               isProcessing={isResetting}
             />
           ) : (

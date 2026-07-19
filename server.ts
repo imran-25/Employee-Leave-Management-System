@@ -228,7 +228,7 @@ app.post('/api/auth/login', (req, res) => {
   }
 });
 
-// 4. Approve Leave
+// 4. Approve Leave (HR Head Action)
 app.post('/api/leaves/approve', (req, res) => {
   try {
     const { leaveId, approverName, remarks } = req.body;
@@ -242,7 +242,7 @@ app.post('/api/leaves/approve', (req, res) => {
       return res.status(404).json({ error: 'Leave request not found' });
     }
 
-    if (leave.status !== LeaveStatus.PENDING) {
+    if (leave.status !== LeaveStatus.PENDING && leave.status !== LeaveStatus.FORWARDED) {
       return res.status(400).json({ error: 'This leave request is already settled' });
     }
 
@@ -291,6 +291,46 @@ app.post('/api/leaves/approve', (req, res) => {
   }
 });
 
+// 4b. Forward Leave (Manager Action)
+app.post('/api/leaves/forward', (req, res) => {
+  try {
+    const { leaveId, managerName, remarks } = req.body;
+    if (!leaveId || !managerName) {
+      return res.status(400).json({ error: 'Missing leave ID or manager details' });
+    }
+
+    const db = getDatabase();
+    const leave = db.leaves.find(l => l.id === leaveId);
+    if (!leave) {
+      return res.status(404).json({ error: 'Leave request not found' });
+    }
+
+    if (leave.status !== LeaveStatus.PENDING) {
+      return res.status(400).json({ error: 'This leave request is not pending manager review.' });
+    }
+
+    // Update leave request state
+    leave.status = LeaveStatus.FORWARDED;
+    leave.managerName = managerName;
+    leave.managerRemarks = remarks || 'Recommended and forwarded to HR Head.';
+
+    // Audit Log
+    const newLog: AuditLog = {
+      id: `LOG-${Math.floor(1000 + Math.random() * 9000)}`,
+      timestamp: new Date().toISOString(),
+      actorName: managerName,
+      action: 'FORWARD_LEAVE',
+      details: `Manager ${managerName} forwarded ${leave.leaveType} leave request ${leaveId} for ${leave.employeeName} to the head of HR.`
+    };
+    db.auditLogs.unshift(newLog);
+
+    writeDatabase(db);
+    res.json({ success: true, leave, database: db });
+  } catch (err: any) {
+    res.status(500).json({ error: 'Failed to forward leave request', message: err.message });
+  }
+});
+
 // 5. Reject Leave
 app.post('/api/leaves/reject', (req, res) => {
   try {
@@ -305,7 +345,7 @@ app.post('/api/leaves/reject', (req, res) => {
       return res.status(404).json({ error: 'Leave request not found' });
     }
 
-    if (leave.status !== LeaveStatus.PENDING) {
+    if (leave.status !== LeaveStatus.PENDING && leave.status !== LeaveStatus.FORWARDED) {
       return res.status(400).json({ error: 'This leave request is already settled' });
     }
 

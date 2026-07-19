@@ -11,6 +11,7 @@ export enum TargetRole {
 
 export enum LeaveStatus {
   PENDING = 'Pending',
+  FORWARDED = 'Forwarded',
   APPROVED = 'Approved',
   REJECTED = 'Rejected'
 }
@@ -54,6 +55,8 @@ export interface LeaveRequest {
   approvedOrRejectedAt?: string;
   approverRemarks?: string;
   approverName?: string;
+  managerName?: string;
+  managerRemarks?: string;
 }
 
 export interface LeavePolicy {

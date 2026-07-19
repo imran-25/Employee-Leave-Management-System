@@ -227,6 +227,18 @@ export async function initDatabaseConnection(): Promise<void> {
     }
 
     console.log('Synchronizing ELMS state cache from local MySQL...');
+
+    // Run dynamic migration check to support new workflow without manual intervention
+    try {
+      const [columns]: any = await mysqlPool.query("SHOW COLUMNS FROM leave_requests LIKE 'managerName'");
+      if (columns.length === 0) {
+        console.log('Migrating local MySQL schema: Adding managerName and managerRemarks to leave_requests...');
+        await mysqlPool.query("ALTER TABLE leave_requests ADD COLUMN managerName VARCHAR(150) DEFAULT NULL");
+        await mysqlPool.query("ALTER TABLE leave_requests ADD COLUMN managerRemarks TEXT DEFAULT NULL");
+      }
+    } catch (migErr) {
+      console.warn('Auto-migration check yielded warning:', migErr);
+    }
     
     // Fetch relational elements
     const [employeesRows]: any = await mysqlPool.query('SELECT * FROM employees');
@@ -283,7 +295,9 @@ export async function initDatabaseConnection(): Promise<void> {
       requestedAt: l.requestedAt,
       approvedOrRejectedAt: l.approvedOrRejectedAt || undefined,
       approverName: l.approverName || undefined,
-      approverRemarks: l.approverRemarks || undefined
+      approverRemarks: l.approverRemarks || undefined,
+      managerName: l.managerName || undefined,
+      managerRemarks: l.managerRemarks || undefined
     })).sort((a: any, b: any) => b.requestedAt.localeCompare(a.requestedAt));
 
     // Map log files
@@ -351,15 +365,17 @@ async function syncToMySQL(db: ELMSDatabase): Promise<void> {
     // 3. Sync Leave Requests
     for (const req of db.leaves) {
       await mysqlPool.query(
-        `INSERT INTO leave_requests (id, employeeId, employeeName, department, leaveType, startDate, endDate, duration, reason, refinedReason, attachmentName, attachmentData, status, requestedAt, approvedOrRejectedAt, approverName, approverRemarks)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        `INSERT INTO leave_requests (id, employeeId, employeeName, department, leaveType, startDate, endDate, duration, reason, refinedReason, attachmentName, attachmentData, status, requestedAt, approvedOrRejectedAt, approverName, approverRemarks, managerName, managerRemarks)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
          ON DUPLICATE KEY UPDATE status = VALUES(status), approvedOrRejectedAt = VALUES(approvedOrRejectedAt), 
-                               approverName = VALUES(approverName), approverRemarks = VALUES(approverRemarks)`,
+                               approverName = VALUES(approverName), approverRemarks = VALUES(approverRemarks),
+                               managerName = VALUES(managerName), managerRemarks = VALUES(managerRemarks)`,
         [
           req.id, req.employeeId, req.employeeName, req.department, req.leaveType,
           req.startDate, req.endDate, req.duration, req.reason, req.refinedReason || null,
           req.attachmentName || null, req.attachmentData || null, req.status,
-          req.requestedAt, req.approvedOrRejectedAt || null, req.approverName || null, req.approverRemarks || null
+          req.requestedAt, req.approvedOrRejectedAt || null, req.approverName || null, req.approverRemarks || null,
+          req.managerName || null, req.managerRemarks || null
         ]
       );
     }
