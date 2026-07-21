@@ -404,25 +404,30 @@ Use professional HR terms, bullet points for clarity, and clean headers. Do not 
         prompt = `Refine these informal guidelines into a professional HR Policy Manual section:\n\nDraft Notes: "${text}"`;
       }
 
-      const response = await ai.models.generateContent({
-        model: 'gemini-3.5-flash',
-        contents: prompt,
-        config: {
-          systemInstruction,
-          temperature: 0.7,
-        }
-      });
+      try {
+        const response = await ai.models.generateContent({
+          model: 'gemini-3.5-flash',
+          contents: prompt,
+          config: {
+            systemInstruction,
+            temperature: 0.7,
+          }
+        });
 
-      const refinedText = response.text || '';
-      res.json({ refinedText });
-    } else {
-      // Graceful local resilient fallback
-      let refinedText = '';
-      if (itemType === 'request') {
-        const leaveType = metadata?.leaveType || 'Annual';
-        const start = metadata?.startDate || 'YYYY-MM-DD';
-        const end = metadata?.endDate || 'YYYY-MM-DD';
-        refinedText = `Subject: Formal Leave Request: ${leaveType} Leave Submission
+        const refinedText = response.text || '';
+        return res.json({ refinedText });
+      } catch (geminiErr: any) {
+        console.warn('Gemini API call failed (possibly invalid API key). Falling back to resilient local generator.', geminiErr.message);
+      }
+    }
+
+    // Graceful local resilient fallback (used if ai client is missing OR if the API call failed)
+    let refinedText = '';
+    if (itemType === 'request') {
+      const leaveType = metadata?.leaveType || 'Annual';
+      const start = metadata?.startDate || 'YYYY-MM-DD';
+      const end = metadata?.endDate || 'YYYY-MM-DD';
+      refinedText = `Subject: Formal Leave Request: ${leaveType} Leave Submission
 
 Dear HR Department & Management,
 
@@ -436,8 +441,8 @@ Thank you very much for your understanding and for considering this request.
 
 Sincerely,
 [Employee Name]`;
-      } else {
-        refinedText = `### Employee Leave Policy Directive
+    } else {
+      refinedText = `### Employee Leave Policy Directive
   
 1. **Scope and Authorization**
    - General guidelines: ${text}.
@@ -445,9 +450,8 @@ Sincerely,
 
 2. **Compliance & Reporting**
    - Any violation of these terms may result in balance suspension or deduction. Support documentation must be uploaded wherever requested by HR Admins.`;
-      }
-      res.json({ refinedText, note: 'Resilient local blueprint fallback generation applied' });
     }
+    res.json({ refinedText, note: 'Resilient local blueprint fallback generation applied' });
   } catch (err: any) {
     console.error('Text Refinement Service failed:', err);
     res.status(500).json({ error: 'Text Refinement Service experienced a failure', message: err.message });

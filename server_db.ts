@@ -191,6 +191,7 @@ export const INITIAL_DATABASE: ELMSDatabase = {
 // =====================================================================
 let mysqlPool: mysql.Pool | null = null;
 const isMySQLEnabled = !!(process.env.DB_HOST && process.env.DB_NAME && process.env.DB_USER);
+let isMySQLActive = false;
 
 if (isMySQLEnabled) {
   try {
@@ -216,6 +217,7 @@ if (isMySQLEnabled) {
 export async function initDatabaseConnection(): Promise<void> {
   if (!isMySQLEnabled || !mysqlPool) {
     console.log('Running ELMS with Resilient JSON Local DB Driver.');
+    isMySQLActive = false;
     return;
   }
 
@@ -223,10 +225,12 @@ export async function initDatabaseConnection(): Promise<void> {
     const [rows]: any = await mysqlPool.query("SHOW TABLES LIKE 'employees'");
     if (rows.length === 0) {
       console.log('MySQL connected successfully. Warning: Corporate schemas NOT detected. Please import "/init_mysql.sql" inside phpMyAdmin list to seed relational tables.');
+      isMySQLActive = true;
       return;
     }
 
     console.log('Synchronizing ELMS state cache from local MySQL...');
+    isMySQLActive = true;
 
     // Run dynamic migration check to support new workflow without manual intervention
     try {
@@ -319,8 +323,28 @@ export async function initDatabaseConnection(): Promise<void> {
     // Commit snapshot back to cache file for synchronous read processes
     fs.writeFileSync(DB_FILE_PATH, JSON.stringify(mysqlDatabaseSnapshot, null, 2), 'utf-8');
     console.log(`ELMS synchronized with MySQL. Loaded ${employeesList.length} employees, ${leavesList.length} requests, and ${logsList.length} logs successfully.`);
-  } catch (err) {
-    console.error('Error pre-loading from local MySQL schema. Falling back to secure JSON state file.', err);
+  } catch (err: any) {
+    isMySQLActive = false;
+    console.warn('\n=====================================================================');
+    console.warn('⚠️  MYSQL CONNECTION NOTICE: Falling back to secure JSON state file.');
+    console.warn('Reason:', err.message || err);
+    console.warn('---------------------------------------------------------------------');
+    console.warn('EXPLANATION: This application is running on a secure Cloud Run container.');
+    console.warn('It cannot directly access local addresses like "localhost" or "127.0.0.1"');
+    console.warn('of your computer where WampServer (MySQL/Apache) is running.');
+    console.warn('\nDIAGNOSTICS & SOLUTIONS:');
+    console.warn('1. If the error is "getaddrinfo EAI_AGAIN root":');
+    console.warn('   - You likely swapped DB_HOST and DB_USER. In your environment,');
+    console.warn('     ensure DB_HOST is set to your database host (e.g., "127.0.0.1"), NOT "root".');
+    console.warn('2. To run fully integrated with your local WampServer:');
+    console.warn('   - Export this applet (via settings menu -> Download ZIP or export to GitHub).');
+    console.warn('   - Run the application locally on your laptop with "npm run dev".');
+    console.warn('   - The local app server will connect perfectly to your local MySQL (127.0.0.1).');
+    console.warn('3. To connect this Cloud Run preview to your local database:');
+    console.warn('   - Expose your local MySQL port (3306) to the internet using ngrok:');
+    console.warn('     "ngrok tcp 3306"');
+    console.warn('   - Configure DB_HOST and DB_PORT in AI Studio with the public ngrok address.');
+    console.warn('=====================================================================\n');
   }
 }
 
@@ -413,7 +437,7 @@ export function writeDatabase(db: ELMSDatabase): void {
   try {
     fs.writeFileSync(DB_FILE_PATH, JSON.stringify(db, null, 2), 'utf-8');
     // Dual synchronisation: Update MySQL ledger state asynchronously in the background
-    if (isMySQLEnabled) {
+    if (isMySQLActive) {
       syncToMySQL(db);
     }
   } catch (error) {
@@ -425,7 +449,7 @@ export function resetDatabase(): ELMSDatabase {
   writeDatabase(INITIAL_DATABASE);
   
   // Truncate MySQL records live on system resets if active
-  if (isMySQLEnabled && mysqlPool) {
+  if (isMySQLActive && mysqlPool) {
     Promise.resolve().then(async () => {
       try {
         await mysqlPool!.query('SET FOREIGN_KEY_CHECKS = 0');
