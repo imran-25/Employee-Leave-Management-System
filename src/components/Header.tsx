@@ -39,23 +39,20 @@ export default function Header({
             <div>
               <div className="flex items-center gap-2">
                 <h1 className="text-xl font-bold tracking-tight text-white font-sans">
-                  Employee Leave Management System <span className="text-indigo-400 font-mono text-xs px-2 py-0.5 bg-indigo-500/15 rounded-full border border-indigo-500/30">ELMS MIS</span>
+                  Employee Leave Management System
                 </h1>
               </div>
-              <p className="text-slate-400 text-xs mt-0.5 max-w-xl leading-relaxed">
-                Management Information System (MIS) approach to streamline tracking, approval workflows, and leave balance calculations for HR departments.
-              </p>
             </div>
           </div>
 
           {/* Interactive controls: Role-simulator & Reset DB */}
           <div className="flex flex-wrap items-center gap-3 md:self-center">
             
-            {/* Simulation Context Selector */}
+            {/* User Switcher */}
             {currentUserId && (
               <div className="bg-slate-800 border border-slate-700 rounded-lg px-2 py-1.5 flex items-center gap-2">
                 <span className="text-slate-400 text-xs font-medium font-mono flex items-center gap-1 pl-1">
-                  <span className="h-2 w-2 rounded-full bg-emerald-400 inline-block animate-pulse" /> DEV SIMULATOR:
+                  User:
                 </span>
                 <select
                   id="user-sim-selector"

@@ -54,7 +54,7 @@ export default function EmployeeDashboard({
   const myLeaves = leaves.filter(l => l.employeeId === employee.id);
 
   // Form states
-  const [leaveType, setLeaveType] = useState<LeaveType>('Annual');
+  const [leaveType, setLeaveType] = useState<LeaveType>('Earn Leave');
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
   const [duration, setDuration] = useState(0);
@@ -157,8 +157,8 @@ export default function EmployeeDashboard({
       return;
     }
 
-    if (leaveType !== 'Unpaid' && employee.balances[leaveType] < duration) {
-      setErrorMsg(`Balance Check: Insufficient ${leaveType} leave balance. Remaining: ${employee.balances[leaveType]} days.`);
+    if (leaveType !== 'Unpaid Leave of Absence' && employee.balances[leaveType] < duration) {
+      setErrorMsg(`Insufficient ${leaveType} balance. Remaining: ${employee.balances[leaveType]} days.`);
       return;
     }
 
@@ -193,11 +193,13 @@ export default function EmployeeDashboard({
 
   // Color mappings
   const typeColors: Record<LeaveType, { bg: string; text: string; border: string }> = {
-    Annual: { bg: 'bg-indigo-50/70', text: 'text-indigo-700', border: 'border-indigo-100' },
-    Sick: { bg: 'bg-rose-50/70', text: 'text-rose-700', border: 'border-rose-100' },
-    Casual: { bg: 'bg-amber-50/70', text: 'text-amber-700', border: 'border-amber-100' },
-    Parental: { bg: 'bg-violet-50/70', text: 'text-violet-700', border: 'border-violet-100' },
-    Unpaid: { bg: 'bg-slate-100', text: 'text-slate-700', border: 'border-slate-200' }
+    'Earn Leave': { bg: 'bg-indigo-50/70', text: 'text-indigo-700', border: 'border-indigo-100' },
+    'Casual Leave': { bg: 'bg-amber-50/70', text: 'text-amber-700', border: 'border-amber-100' },
+    'Maternity Leave': { bg: 'bg-pink-50/70', text: 'text-pink-700', border: 'border-pink-100' },
+    'Medical Leave': { bg: 'bg-rose-50/70', text: 'text-rose-700', border: 'border-rose-100' },
+    'Duty Leave': { bg: 'bg-emerald-50/70', text: 'text-emerald-700', border: 'border-emerald-100' },
+    'Unpaid Leave of Absence': { bg: 'bg-slate-100', text: 'text-slate-700', border: 'border-slate-200' },
+    'Other Leave': { bg: 'bg-purple-50/70', text: 'text-purple-700', border: 'border-purple-100' }
   };
 
   return (
@@ -232,12 +234,9 @@ export default function EmployeeDashboard({
 
         {/* Leave Balance List */}
         <div className="bg-white rounded-xl border border-slate-200 p-5 shadow-sm">
-          <h3 className="text-xs font-semibold text-slate-400 uppercase tracking-wider font-mono">
-            Calculated Leave Balances
+          <h3 className="text-xs font-semibold text-slate-500 uppercase tracking-wider font-mono">
+            Leave Balances
           </h3>
-          <p className="text-slate-500 text-[10px] mt-0.5 font-sans leading-relaxed">
-            Updated in real-time under MIS-relational deduction rules.
-          </p>
 
           <div className="mt-4 space-y-3">
             {(Object.keys(employee.balances) as LeaveType[]).map((type) => {
@@ -245,7 +244,7 @@ export default function EmployeeDashboard({
               const policy = policies.find(p => p.leaveType === type);
               const limit = policy ? policy.yearlyLimit : 30;
               const percent = Math.min(100, Math.max(0, (balance / limit) * 100));
-              const color = typeColors[type];
+              const color = typeColors[type] || { text: 'text-indigo-600' };
 
               return (
                 <div key={type} className="space-y-1">
@@ -264,9 +263,11 @@ export default function EmployeeDashboard({
                     <div 
                       className={`h-full rounded-full transition-all duration-500 ${
                         balance === 0 ? 'bg-slate-300' :
-                        type === 'Sick' ? 'bg-rose-500' :
-                        type === 'Annual' ? 'bg-indigo-500' :
-                        type === 'Casual' ? 'bg-amber-500' :
+                        type === 'Medical Leave' ? 'bg-rose-500' :
+                        type === 'Earn Leave' ? 'bg-indigo-500' :
+                        type === 'Casual Leave' ? 'bg-amber-500' :
+                        type === 'Maternity Leave' ? 'bg-pink-500' :
+                        type === 'Duty Leave' ? 'bg-emerald-500' :
                         'bg-violet-500'
                       }`}
                       style={{ width: `${percent}%` }}
@@ -275,13 +276,6 @@ export default function EmployeeDashboard({
                 </div>
               );
             })}
-          </div>
-
-          <div className="mt-5 p-3 rounded-lg bg-indigo-50/50 border border-indigo-100 text-[11px] text-indigo-800 flex gap-2">
-            <Info className="h-4 w-4 shrink-0 text-indigo-500 mt-0.5" />
-            <p>
-              Applying for leave reserves its duration from your balance immediately to enforce concurrency lockouts. Rejections free up reserved days.
-            </p>
           </div>
         </div>
 
@@ -331,9 +325,9 @@ export default function EmployeeDashboard({
                 transition={{ duration: 0.15 }}
               >
                 <div className="border-b border-slate-100 pb-3 mb-6">
-                  <h3 className="font-semibold text-slate-800 text-base">New Leave Leave Application</h3>
+                  <h3 className="font-semibold text-slate-800 text-base">New Leave Application</h3>
                   <p className="text-xs text-slate-500 mt-1">
-                    Submit leave details. Integrated with the <strong className="text-purple-600">Gemini LLM Text Refiner</strong> which polishes brief raw explanations into professional formats automatically.
+                    Fill out the form below to submit your leave request.
                   </p>
                 </div>
 
@@ -349,17 +343,19 @@ export default function EmployeeDashboard({
                         onChange={(e) => setLeaveType(e.target.value as LeaveType)}
                         className="w-full bg-slate-50 border border-slate-200 rounded-lg p-2.5 text-xs text-slate-700 font-medium focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 focus:outline-none transition-all"
                       >
-                        <option value="Annual">Annual Leave (Vacation)</option>
-                        <option value="Sick">Sick Leave (Medical)</option>
-                        <option value="Casual">Casual Leave (Emergency)</option>
-                        <option value="Parental">Parental Leave</option>
-                        <option value="Unpaid">Unpaid Leave of Absence</option>
+                        <option value="Earn Leave">Earn Leave</option>
+                        <option value="Casual Leave">Casual Leave</option>
+                        <option value="Maternity Leave">Maternity Leave</option>
+                        <option value="Medical Leave">Medical Leave</option>
+                        <option value="Duty Leave">Duty Leave</option>
+                        <option value="Unpaid Leave of Absence">Unpaid Leave of Absence</option>
+                        <option value="Other Leave">Other Leave</option>
                       </select>
                     </div>
 
                     {selectedPolicy && (
                       <div className="bg-slate-50 rounded-lg p-3 border border-slate-150 text-xs text-slate-600 self-end">
-                        <span className="font-bold text-slate-700 block">Category Rules Policy</span>
+                        <span className="font-bold text-slate-700 block">Category Policy</span>
                         <p className="mt-0.5 text-slate-500 text-[11px] leading-tight">{selectedPolicy.description}</p>
                         <div className="mt-1.5 flex gap-4 text-[10px] font-mono uppercase text-slate-500 font-semibold">
                           <span>Limit: {selectedPolicy.yearlyLimit} days/yr</span>
@@ -369,9 +365,9 @@ export default function EmployeeDashboard({
                     )}
                   </div>
 
-                  {/* Dates Configuration with Dynamic Calculator */}
+                  {/* Dates Configuration */}
                   <div className="bg-slate-50 p-4 rounded-lg border border-slate-150 space-y-4">
-                    <span className="text-xs font-semibold text-slate-700 block">Relational Date Spans</span>
+                    <span className="text-xs font-semibold text-slate-700 block">Date Selection</span>
                     
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                       <div className="space-y-1.5">

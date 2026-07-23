@@ -12,39 +12,53 @@ const DB_FILE_PATH = path.join(process.cwd(), 'leave_management_db.json');
 
 const DEFAULT_POLICIES: LeavePolicy[] = [
   {
-    leaveType: 'Annual',
+    leaveType: 'Earn Leave',
     yearlyLimit: 20,
     maxConsecutiveDays: 14,
     requiresDocumentation: false,
-    description: 'General paid vacation. Requires submission 2 weeks in advance.'
+    description: 'Earned paid leave accumulated over service time.'
   },
   {
-    leaveType: 'Sick',
+    leaveType: 'Casual Leave',
     yearlyLimit: 10,
-    maxConsecutiveDays: 5,
-    requiresDocumentation: true,
-    description: 'Paid medical leave for recovery or doctor appointments.'
-  },
-  {
-    leaveType: 'Casual',
-    yearlyLimit: 7,
     maxConsecutiveDays: 3,
     requiresDocumentation: false,
-    description: 'Urgent personal work or emergency leave.'
+    description: 'Leave for short-term urgent personal matters.'
   },
   {
-    leaveType: 'Parental',
-    yearlyLimit: 60,
-    maxConsecutiveDays: 45,
+    leaveType: 'Maternity Leave',
+    yearlyLimit: 120,
+    maxConsecutiveDays: 90,
     requiresDocumentation: true,
-    description: 'Paid parental leave for childbirth or adoption.'
+    description: 'Paid maternity leave for female employees.'
   },
   {
-    leaveType: 'Unpaid',
+    leaveType: 'Medical Leave',
+    yearlyLimit: 14,
+    maxConsecutiveDays: 7,
+    requiresDocumentation: true,
+    description: 'Paid sick leave for illness, surgery, or medical recovery.'
+  },
+  {
+    leaveType: 'Duty Leave',
+    yearlyLimit: 15,
+    maxConsecutiveDays: 10,
+    requiresDocumentation: false,
+    description: 'Leave granted for official duties or external assignments.'
+  },
+  {
+    leaveType: 'Unpaid Leave of Absence',
     yearlyLimit: 30,
     maxConsecutiveDays: 30,
     requiresDocumentation: false,
-    description: 'Extended leave of absence without pay. Subject to special management approval.'
+    description: 'Extended leave of absence without pay.'
+  },
+  {
+    leaveType: 'Other Leave',
+    yearlyLimit: 10,
+    maxConsecutiveDays: 5,
+    requiresDocumentation: false,
+    description: 'Miscellaneous leave requiring special approval.'
   }
 ];
 
@@ -58,7 +72,15 @@ export const INITIAL_DATABASE: ELMSDatabase = {
       role: TargetRole.HR,
       department: 'Human Resources',
       joinDate: '2023-03-10',
-      balances: { Annual: 18, Sick: 9, Casual: 6, Parental: 60, Unpaid: 30 }
+      balances: {
+        'Earn Leave': 18,
+        'Casual Leave': 8,
+        'Maternity Leave': 120,
+        'Medical Leave': 12,
+        'Duty Leave': 15,
+        'Unpaid Leave of Absence': 30,
+        'Other Leave': 10
+      }
     },
     {
       id: 'EMP-202',
@@ -68,7 +90,15 @@ export const INITIAL_DATABASE: ELMSDatabase = {
       role: TargetRole.MANAGER,
       department: 'Operations',
       joinDate: '2023-01-15',
-      balances: { Annual: 12, Sick: 10, Casual: 7, Parental: 60, Unpaid: 30 }
+      balances: {
+        'Earn Leave': 12,
+        'Casual Leave': 10,
+        'Maternity Leave': 120,
+        'Medical Leave': 14,
+        'Duty Leave': 15,
+        'Unpaid Leave of Absence': 30,
+        'Other Leave': 10
+      }
     },
     {
       id: 'EMP-303',
@@ -78,7 +108,15 @@ export const INITIAL_DATABASE: ELMSDatabase = {
       role: TargetRole.EMPLOYEE,
       department: 'Sales',
       joinDate: '2022-04-01',
-      balances: { Annual: 15, Sick: 8, Casual: 5, Parental: 60, Unpaid: 30 }
+      balances: {
+        'Earn Leave': 15,
+        'Casual Leave': 6,
+        'Maternity Leave': 120,
+        'Medical Leave': 10,
+        'Duty Leave': 15,
+        'Unpaid Leave of Absence': 30,
+        'Other Leave': 10
+      }
     },
     {
       id: 'EMP-404',
@@ -88,7 +126,15 @@ export const INITIAL_DATABASE: ELMSDatabase = {
       role: TargetRole.EMPLOYEE,
       department: 'Engineering',
       joinDate: '2024-02-12',
-      balances: { Annual: 15, Sick: 10, Casual: 7, Parental: 60, Unpaid: 30 }
+      balances: {
+        'Earn Leave': 15,
+        'Casual Leave': 8,
+        'Maternity Leave': 120,
+        'Medical Leave': 14,
+        'Duty Leave': 15,
+        'Unpaid Leave of Absence': 30,
+        'Other Leave': 10
+      }
     },
     {
       id: 'EMP-505',
@@ -98,7 +144,15 @@ export const INITIAL_DATABASE: ELMSDatabase = {
       role: TargetRole.EMPLOYEE,
       department: 'Engineering',
       joinDate: '2024-05-18',
-      balances: { Annual: 18, Sick: 8, Casual: 7, Parental: 60, Unpaid: 30 }
+      balances: {
+        'Earn Leave': 18,
+        'Casual Leave': 8,
+        'Maternity Leave': 120,
+        'Medical Leave': 12,
+        'Duty Leave': 15,
+        'Unpaid Leave of Absence': 30,
+        'Other Leave': 10
+      }
     }
   ],
   leaves: [
@@ -107,64 +161,51 @@ export const INITIAL_DATABASE: ELMSDatabase = {
       employeeId: 'EMP-404',
       employeeName: 'Alan Turing',
       department: 'Engineering',
-      leaveType: 'Annual',
+      leaveType: 'Earn Leave',
       startDate: '2026-07-10',
       endDate: '2026-07-15',
       duration: 5,
       reason: 'Summer holiday hiking in the Lake District and visiting parents.',
-      refinedReason: 'Subject: Formal Leave Request: Annual Leave Submission (July 10, 2026 - July 15, 2026)\n\nDear Management,\n\nI am writing to formally request annual leave starting from July 10, 2026, with a return date of July 16, 2026. This totals 5 working days.\n\nDuring my absence, I plan to travel to the Lake District for a hiking excursion and spend time with my family.\n\nThank you for considering my request.',
+      refinedReason: 'Formal Request: Earn Leave Submission for vacation.',
       status: LeaveStatus.APPROVED,
       requestedAt: '2026-06-10T10:00:00.000Z',
       approvedOrRejectedAt: '2026-06-11T14:30:00.000Z',
       approverName: 'Sarah Connor',
-      approverRemarks: 'Approved. Deliverables have been successfully reassigned for that week.'
+      approverRemarks: 'Approved. Deliverables reassigned.'
     },
     {
       id: 'LV-402',
       employeeId: 'EMP-303',
       employeeName: 'Michael Scott',
       department: 'Sales',
-      leaveType: 'Casual',
+      leaveType: 'Casual Leave',
       startDate: '2026-06-20',
       endDate: '2026-06-22',
       duration: 2,
-      reason: 'Emergency personal plumbing/home repair issue at my residence.',
-      refinedReason: 'Subject: Urgent Casual Leave Request: Home Maintenance Emergency\n\nDear HR Department,\n\nI am writing to request 2 days of casual leave from June 20, 2026, to June 22, 2026, due to an unexpected plumbing and home repair emergency at my primary residence.\n\nBest regards,\nMichael Scott',
+      reason: 'Emergency personal plumbing repair at my residence.',
+      refinedReason: 'Urgent Casual Leave Request: Home Maintenance Emergency',
       status: LeaveStatus.REJECTED,
       requestedAt: '2026-06-12T08:30:00.000Z',
       approvedOrRejectedAt: '2026-06-13T09:15:00.000Z',
       approverName: 'Sarah Connor',
-      approverRemarks: 'Rejected. Short notice during the end-of-quarter sales drive. Please coordinate with operations to reschedule.'
+      approverRemarks: 'Rejected due to end-of-quarter sales drive.'
     },
     {
       id: 'LV-403',
       employeeId: 'EMP-505',
       employeeName: 'Ada Lovelace',
       department: 'Engineering',
-      leaveType: 'Sick',
+      leaveType: 'Medical Leave',
       startDate: '2026-06-14',
       endDate: '2026-06-15',
       duration: 2,
       reason: 'Wisdom tooth extraction surgery and doctor mandated rest.',
-      refinedReason: 'Subject: Notification of Sick Leave: Wisdom Tooth Extraction Surgery\n\nDear HR,\n\nPlease accept this request for 2 days of sick leave from June 14, 2026, to June 15, 2026. I am scheduled for medical wisdom tooth extraction and my dental surgeon has advised a 2-day recovery period.',
+      refinedReason: 'Notification of Medical Leave: Dental Surgery',
       status: LeaveStatus.APPROVED,
       requestedAt: '2026-06-13T16:45:00.000Z',
       approvedOrRejectedAt: '2026-06-13T17:10:00.000Z',
       approverName: 'Imran Tar',
-      approverRemarks: 'Approved. Wishing you a speedy recovery, Ada.'
-    },
-    {
-      id: 'LV-404',
-      employeeId: 'EMP-303',
-      employeeName: 'Michael Scott',
-      department: 'Sales',
-      leaveType: 'Annual',
-      startDate: '2026-07-01',
-      endDate: '2026-07-08',
-      duration: 5,
-      reason: 'Family trip down to Florida beaches to visit my relatives.',
-      status: LeaveStatus.PENDING,
-      requestedAt: '2026-06-14T11:20:00.000Z'
+      approverRemarks: 'Approved. Speedy recovery, Ada.'
     }
   ],
   policies: DEFAULT_POLICIES,
@@ -430,6 +471,70 @@ export function getDatabase(): ELMSDatabase {
   } catch (error) {
     console.error('Error reading leave management database:', error);
     return INITIAL_DATABASE;
+  }
+}
+
+export async function getDatabaseStatus() {
+  if (!isMySQLEnabled) {
+    return {
+      connected: false,
+      mode: 'json_fallback',
+      reason: 'MySQL environment variables (DB_HOST, DB_NAME, DB_USER) are not fully configured.',
+      config: {
+        host: process.env.DB_HOST || 'Not set',
+        port: process.env.DB_PORT || '3306',
+        user: process.env.DB_USER || 'Not set',
+        database: process.env.DB_NAME || 'Not set'
+      }
+    };
+  }
+
+  if (!mysqlPool) {
+    return {
+      connected: false,
+      mode: 'json_fallback',
+      reason: 'MySQL pool could not be initialized.',
+      config: {
+        host: process.env.DB_HOST,
+        port: process.env.DB_PORT || '3306',
+        user: process.env.DB_USER,
+        database: process.env.DB_NAME
+      }
+    };
+  }
+
+  try {
+    const [result]: any = await mysqlPool.query('SELECT 1 as alive');
+    const [tables]: any = await mysqlPool.query("SHOW TABLES LIKE 'employees'");
+    const hasSchema = tables.length > 0;
+
+    return {
+      connected: true,
+      mode: 'mysql',
+      hasSchema,
+      message: hasSchema ? 'Successfully connected to MySQL database with ELMS schema.' : 'Connected to MySQL, but tables are missing. Please import init_mysql.sql.',
+      config: {
+        host: process.env.DB_HOST,
+        port: process.env.DB_PORT || '3306',
+        user: process.env.DB_USER,
+        database: process.env.DB_NAME
+      }
+    };
+  } catch (err: any) {
+    return {
+      connected: false,
+      mode: 'json_fallback',
+      error: err.message,
+      explanation: process.env.NODE_ENV === 'production' || process.env.DB_HOST === '127.0.0.1' || process.env.DB_HOST === 'localhost'
+        ? 'Notice: Cloud environments cannot reach "127.0.0.1" on your local computer directly. To connect XAMPP, run the app locally with "npm run dev" or tunnel via ngrok.'
+        : 'Failed to connect to specified MySQL host.',
+      config: {
+        host: process.env.DB_HOST,
+        port: process.env.DB_PORT || '3306',
+        user: process.env.DB_USER,
+        database: process.env.DB_NAME
+      }
+    };
   }
 }
 

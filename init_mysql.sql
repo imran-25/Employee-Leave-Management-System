@@ -1,146 +1,112 @@
--- =====================================================================
--- ELMS Database Initialization Script (MySQL / MariaDB Compatible)
--- Prepared for Local Installation via WampServer (Apache/MySQL/phpMyAdmin)
--- Academic Thesis Standard Schema with Relational Constraints
--- =====================================================================
+-- ELMS Database Initialization Script for MySQL / XAMPP / WampServer
+-- Database Name: elms_db
 
--- 1. Create and select the database
-CREATE DATABASE IF NOT EXISTS `elms_db` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+CREATE DATABASE IF NOT EXISTS `elms_db` DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 USE `elms_db`;
 
--- Disable foreign key checks temporarily to safely reset/drop existing schema tables
-SET FOREIGN_KEY_CHECKS = 0;
+-- Drop existing tables for a clean setup
 DROP TABLE IF EXISTS `audit_logs`;
 DROP TABLE IF EXISTS `leave_requests`;
-DROP TABLE IF EXISTS `leave_balances`;
 DROP TABLE IF EXISTS `leave_policies`;
+DROP TABLE IF EXISTS `leave_balances`;
 DROP TABLE IF EXISTS `employees`;
-SET FOREIGN_KEY_CHECKS = 1;
 
--- 2. CREATE TABLE: 'employees'
--- Holds the master record of all corporate network human resources.
+-- 1. Employees Table
 CREATE TABLE `employees` (
-  `id` VARCHAR(50) NOT NULL COMMENT 'Enterprise unique Employee Identifier (e.g. EMP-101)',
-  `name` VARCHAR(150) NOT NULL COMMENT 'Full name of corporate personnel',
-  `email` VARCHAR(150) NOT NULL UNIQUE COMMENT 'Corporate communication email address',
-  `password` VARCHAR(255) NOT NULL COMMENT 'Store secure login credentials',
-  `role` VARCHAR(50) NOT NULL COMMENT 'System authority level: HR, MANAGER, or EMPLOYEE',
-  `department` VARCHAR(100) NOT NULL COMMENT 'Department group allocation (e.g. Engineering, Sales)',
-  `joinDate` DATE NOT NULL COMMENT 'Date the employee officially entered corporate ledger',
+  `id` VARCHAR(50) NOT NULL,
+  `name` VARCHAR(100) NOT NULL,
+  `email` VARCHAR(150) NOT NULL UNIQUE,
+  `password` VARCHAR(255) NOT NULL DEFAULT 'password123',
+  `role` ENUM('HR Admin', 'Manager', 'Employee') NOT NULL DEFAULT 'Employee',
+  `department` VARCHAR(100) NOT NULL,
+  `joinDate` DATE NOT NULL,
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
--- 3. CREATE TABLE: 'leave_policies'
--- Holds active limits and rules mapping to standard legal and HR limits.
-CREATE TABLE `leave_policies` (
-  `leaveType` VARCHAR(50) NOT NULL COMMENT 'Category of leave (e.g., Annual, Sick, Casual)',
-  `yearlyLimit` INT NOT NULL COMMENT 'Max accumulated credit allowed for this leave type per fiscal year',
-  `maxConsecutiveDays` INT NOT NULL COMMENT 'Max consecutive duration permissible in a single request',
-  `requiresDocumentation` TINYINT(1) NOT NULL DEFAULT 0 COMMENT 'Flag representing high compliance audit document requirement',
-  `description` TEXT COMMENT 'Summary outlining the criteria and parameters for authorization',
-  PRIMARY KEY (`leaveType`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
--- 4. CREATE TABLE: 'leave_balances'
--- Real-time ledger tracking active balance quotas per employee, preventing database overlap.
+-- 2. Leave Balances Table
 CREATE TABLE `leave_balances` (
+  `id` INT AUTO_INCREMENT PRIMARY KEY,
   `employeeId` VARCHAR(50) NOT NULL,
   `leaveType` VARCHAR(50) NOT NULL,
-  `balance` INT NOT NULL DEFAULT 0 COMMENT 'Days remaining for use',
-  PRIMARY KEY (`employeeId`, `leaveType`),
-  CONSTRAINT `fk_balance_employee` FOREIGN KEY (`employeeId`) REFERENCES `employees` (`id`) ON DELETE CASCADE,
-  CONSTRAINT `fk_balance_policy` FOREIGN KEY (`leaveType`) REFERENCES `leave_policies` (`leaveType`) ON DELETE CASCADE
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+  `balance` INT NOT NULL DEFAULT 0,
+  FOREIGN KEY (`employeeId`) REFERENCES `employees`(`id`) ON DELETE CASCADE,
+  UNIQUE KEY `emp_leave_type` (`employeeId`, `leaveType`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
--- 5. CREATE TABLE: 'leave_requests'
--- Main transaction table tracking submissions, status alterations, and approver details.
+-- 3. Leave Policies Table
+CREATE TABLE `leave_policies` (
+  `leaveType` VARCHAR(50) PRIMARY KEY,
+  `yearlyLimit` INT NOT NULL,
+  `maxConsecutiveDays` INT NOT NULL,
+  `requiresDocumentation` TINYINT(1) NOT NULL DEFAULT 0,
+  `description` TEXT
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- 4. Leave Requests Table
 CREATE TABLE `leave_requests` (
-  `id` VARCHAR(50) NOT NULL COMMENT 'Leave submission tracking ID (e.g. LV-401)',
+  `id` VARCHAR(50) PRIMARY KEY,
   `employeeId` VARCHAR(50) NOT NULL,
-  `employeeName` VARCHAR(150) NOT NULL,
+  `employeeName` VARCHAR(100) NOT NULL,
   `department` VARCHAR(100) NOT NULL,
   `leaveType` VARCHAR(50) NOT NULL,
   `startDate` DATE NOT NULL,
   `endDate` DATE NOT NULL,
   `duration` INT NOT NULL,
-  `reason` TEXT NOT NULL COMMENT 'Initial raw justification submitted by applicant',
-  `refinedReason` TEXT COMMENT 'Polished letter draft generated by Gemini AI Refiner tool',
-  `attachmentName` VARCHAR(255) DEFAULT NULL COMMENT 'Supporting certificate filename',
-  `attachmentData` LONGTEXT DEFAULT NULL COMMENT 'Supporting certificate file content stored as base64',
-  `status` VARCHAR(50) NOT NULL DEFAULT 'PENDING' COMMENT 'States: PENDING, FORWARDED, APPROVED, REJECTED',
-  `requestedAt` VARCHAR(100) NOT NULL,
-  `approvedOrRejectedAt` VARCHAR(100) DEFAULT NULL,
-  `approverName` VARCHAR(150) DEFAULT NULL,
-  `approverRemarks` TEXT DEFAULT NULL COMMENT 'Assessment justification notes appended during review',
+  `reason` TEXT NOT NULL,
+  `refinedReason` TEXT DEFAULT NULL,
+  `attachmentName` VARCHAR(255) DEFAULT NULL,
+  `attachmentData` LONGTEXT DEFAULT NULL,
+  `status` ENUM('Pending', 'Forwarded', 'Approved', 'Rejected') NOT NULL DEFAULT 'Pending',
   `managerName` VARCHAR(150) DEFAULT NULL,
   `managerRemarks` TEXT DEFAULT NULL,
-  PRIMARY KEY (`id`),
-  CONSTRAINT `fk_request_employee` FOREIGN KEY (`employeeId`) REFERENCES `employees` (`id`) ON DELETE CASCADE,
-  CONSTRAINT `fk_request_policy` FOREIGN KEY (`leaveType`) REFERENCES `leave_policies` (`leaveType`) ON DELETE CASCADE
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+  `approverName` VARCHAR(150) DEFAULT NULL,
+  `approverRemarks` TEXT DEFAULT NULL,
+  `requestedAt` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `approvedOrRejectedAt` DATETIME DEFAULT NULL,
+  FOREIGN KEY (`employeeId`) REFERENCES `employees`(`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
--- 6. CREATE TABLE: 'audit_logs'
--- Absolute security ledger tracking all state mutations and administrative authorization operations.
+-- 5. Audit Logs Table
 CREATE TABLE `audit_logs` (
-  `id` VARCHAR(50) NOT NULL,
-  `timestamp` VARCHAR(100) NOT NULL,
-  `actorName` VARCHAR(150) NOT NULL COMMENT 'Responsible operator identity (Employee, Admin or SYSTEM)',
-  `action` VARCHAR(100) NOT NULL COMMENT 'Code tracking: SUBMIT_LEAVE, APPROVE_LEAVE, REGISTER, etc',
-  `details` TEXT NOT NULL COMMENT 'Human-readable diagnostic parameters explaining the alteration',
-  PRIMARY KEY (`id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+  `id` VARCHAR(50) PRIMARY KEY,
+  `timestamp` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `actorName` VARCHAR(100) NOT NULL,
+  `action` VARCHAR(100) NOT NULL,
+  `details` TEXT NOT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
-
--- =====================================================================
--- POPULATING ACTIVE SEED DATA
--- Matches original corporate simulation variables for a seamless migration.
--- =====================================================================
-
--- Seed Employees
+-- Seed Data: Employees
 INSERT INTO `employees` (`id`, `name`, `email`, `password`, `role`, `department`, `joinDate`) VALUES
-('EMP-101', 'Imran Tar', 'imrani.tar@gmail.com', 'password123', 'HR', 'Human Resources', '2023-03-10'),
-('EMP-202', 'Sarah Connor', 'sarah.connor@allied.com', 'password123', 'MANAGER', 'Operations', '2023-01-15'),
-('EMP-303', 'Michael Scott', 'michael.scott@dundermifflin.com', 'password123', 'EMPLOYEE', 'Sales', '2022-04-01'),
-('EMP-404', 'Alan Turing', 'alan.turing@bletchley.edu', 'password123', 'EMPLOYEE', 'Engineering', '2024-02-12'),
-('EMP-505', 'Ada Lovelace', 'ada.lovelace@analytical.org', 'password123', 'EMPLOYEE', 'Engineering', '2024-05-18');
+('EMP-101', 'Imran Tar', 'imrani.tar@gmail.com', 'password123', 'HR Admin', 'Human Resources', '2023-03-10'),
+('EMP-202', 'Sarah Connor', 'sarah.connor@allied.com', 'password123', 'Manager', 'Operations', '2023-01-15'),
+('EMP-303', 'Michael Scott', 'michael.scott@dundermifflin.com', 'password123', 'Employee', 'Sales', '2022-04-01'),
+('EMP-404', 'Alan Turing', 'alan.turing@bletchley.edu', 'password123', 'Employee', 'Engineering', '2024-02-12'),
+('EMP-505', 'Ada Lovelace', 'ada.lovelace@analytical.org', 'password123', 'Employee', 'Engineering', '2024-05-18');
 
--- Seed Policies
+-- Seed Data: Policies
 INSERT INTO `leave_policies` (`leaveType`, `yearlyLimit`, `maxConsecutiveDays`, `requiresDocumentation`, `description`) VALUES
-('Annual', 20, 14, 0, 'General paid vacation. Requires submission 2 weeks in advance.'),
-('Sick', 10, 5, 1, 'Paid medical leave for recovery or doctor appointments.'),
-('Casual', 7, 3, 0, 'Urgent personal work or emergency leave.'),
-('Parental', 60, 45, 1, 'Paid parental leave for childbirth or adoption.'),
-('Unpaid', 30, 30, 0, 'Extended leave of absence without pay. Subject to special management approval.');
+('Earn Leave', 20, 14, 0, 'Earned paid leave accumulated over service time.'),
+('Casual Leave', 10, 3, 0, 'Leave for short-term urgent personal matters.'),
+('Maternity Leave', 120, 90, 1, 'Paid maternity leave for female employees.'),
+('Medical Leave', 14, 7, 1, 'Paid sick leave for illness, surgery, or medical recovery.'),
+('Duty Leave', 15, 10, 0, 'Leave granted for official duties or external assignments.'),
+('Unpaid Leave of Absence', 30, 30, 0, 'Extended leave of absence without pay.'),
+('Other Leave', 10, 5, 0, 'Miscellaneous leave requiring special approval.');
 
--- Seed initial Leave Quotas Balances
+-- Seed Data: Leave Balances for all employees
 INSERT INTO `leave_balances` (`employeeId`, `leaveType`, `balance`) VALUES
-('EMP-101', 'Annual', 18), ('EMP-101', 'Sick', 9), ('EMP-101', 'Casual', 6), ('EMP-101', 'Parental', 60), ('EMP-101', 'Unpaid', 30),
-('EMP-202', 'Annual', 12), ('EMP-202', 'Sick', 10), ('EMP-202', 'Casual', 7), ('EMP-202', 'Parental', 60), ('EMP-202', 'Unpaid', 30),
-('EMP-303', 'Annual', 15), ('EMP-303', 'Sick', 8), ('EMP-303', 'Casual', 5), ('EMP-303', 'Parental', 60), ('EMP-303', 'Unpaid', 30),
-('EMP-404', 'Annual', 15), ('EMP-404', 'Sick', 10), ('EMP-404', 'Casual', 7), ('EMP-404', 'Parental', 60), ('EMP-404', 'Unpaid', 30),
-('EMP-505', 'Annual', 18), ('EMP-505', 'Sick', 8), ('EMP-505', 'Casual', 7), ('EMP-505', 'Parental', 60), ('EMP-505', 'Unpaid', 30);
+('EMP-101', 'Earn Leave', 18), ('EMP-101', 'Casual Leave', 8), ('EMP-101', 'Maternity Leave', 120), ('EMP-101', 'Medical Leave', 12), ('EMP-101', 'Duty Leave', 15), ('EMP-101', 'Unpaid Leave of Absence', 30), ('EMP-101', 'Other Leave', 10),
+('EMP-202', 'Earn Leave', 12), ('EMP-202', 'Casual Leave', 10), ('EMP-202', 'Maternity Leave', 120), ('EMP-202', 'Medical Leave', 14), ('EMP-202', 'Duty Leave', 15), ('EMP-202', 'Unpaid Leave of Absence', 30), ('EMP-202', 'Other Leave', 10),
+('EMP-303', 'Earn Leave', 15), ('EMP-303', 'Casual Leave', 6), ('EMP-303', 'Maternity Leave', 120), ('EMP-303', 'Medical Leave', 10), ('EMP-303', 'Duty Leave', 15), ('EMP-303', 'Unpaid Leave of Absence', 30), ('EMP-303', 'Other Leave', 10),
+('EMP-404', 'Earn Leave', 15), ('EMP-404', 'Casual Leave', 8), ('EMP-404', 'Maternity Leave', 120), ('EMP-404', 'Medical Leave', 14), ('EMP-404', 'Duty Leave', 15), ('EMP-404', 'Unpaid Leave of Absence', 30), ('EMP-404', 'Other Leave', 10),
+('EMP-505', 'Earn Leave', 18), ('EMP-505', 'Casual Leave', 8), ('EMP-505', 'Maternity Leave', 120), ('EMP-505', 'Medical Leave', 12), ('EMP-505', 'Duty Leave', 15), ('EMP-505', 'Unpaid Leave of Absence', 30), ('EMP-505', 'Other Leave', 10);
 
--- Seed initial Leave Transactions
-INSERT INTO `leave_requests` (`id`, `employeeId`, `employeeName`, `department`, `leaveType`, `startDate`, `endDate`, `duration`, `reason`, `refinedReason`, `attachmentName`, `attachmentData`, `status`, `requestedAt`, `approvedOrRejectedAt`, `approverName`, `approverRemarks`) VALUES
-('LV-401', 'EMP-404', 'Alan Turing', 'Engineering', 'Annual', '2026-07-10', '2026-07-15', 5, 
- 'Summer holiday hiking in the Lake District and visiting parents.', 
- 'Subject: Formal Leave Request: Annual Leave Submission (July 10, 2026 - July 15, 2026)\n\nDear Management,\n\nI am writing to formally request annual leave starting from July 10, 2026, with a return date of July 16, 2026. This totals 5 working days.\n\nDuring my absence, I plan to travel to the Lake District for a hiking excursion and spend time with my family.\n\nThank you for considering my request.', 
- NULL, NULL, 'APPROVED', '2026-06-10T10:00:00.000Z', '2026-06-11T14:30:00.000Z', 'Sarah Connor', 'Approved. Deliverables have been successfully reassigned for that week.'),
-('LV-402', 'EMP-303', 'Michael Scott', 'Sales', 'Casual', '2026-06-20', '2026-06-22', 2, 
- 'Emergency personal plumbing/home repair issue at my residence.', 
- 'Subject: Urgent Casual Leave Request: Home Maintenance Emergency\n\nDear HR Department,\n\nI am writing to request 2 days of casual leave from June 20, 2026, to June 22, 2026, due to an unexpected plumbing issue at my primary residence.\n\nBest regards,\nMichael Scott', 
- NULL, NULL, 'REJECTED', '2026-06-12T08:30:00.000Z', '2026-06-13T09:15:00.000Z', 'Sarah Connor', 'Rejected. Short notice during the end-of-quarter sales drive. Please coordinate with operations to reschedule.'),
-('LV-403', 'EMP-505', 'Ada Lovelace', 'Engineering', 'Sick', '2026-06-14', '2026-06-15', 2, 
- 'Wisdom tooth extraction surgery and doctor mandated rest.', 
- 'Subject: Notification of Sick Leave: Wisdom Tooth Extraction Surgery\n\nDear HR,\n\nPlease accept this request for 2 days of sick leave from June 14, 2026, to June 15, 2026. I am scheduled for medical wisdom tooth extraction and my dental surgeon has advised a 2-day recovery period.', 
- NULL, NULL, 'APPROVED', '2026-06-13T16:45:00.000Z', '2026-06-13T17:10:00.000Z', 'Imran Tar', 'Approved. Wishing you a speedy recovery, Ada.'),
-('LV-404', 'EMP-303', 'Michael Scott', 'Sales', 'Annual', '2026-07-01', '2026-07-08', 5, 
- 'Family trip down to Florida beaches to visit my relatives.', NULL, NULL, NULL, 'PENDING', '2026-06-14T11:20:00.000Z', NULL, NULL, NULL);
+-- Seed Data: Initial Leave Requests
+INSERT INTO `leave_requests` (`id`, `employeeId`, `employeeName`, `department`, `leaveType`, `startDate`, `endDate`, `duration`, `reason`, `status`, `requestedAt`) VALUES
+('LV-401', 'EMP-404', 'Alan Turing', 'Engineering', 'Earn Leave', '2026-07-10', '2026-07-15', 5, 'Summer holiday vacation.', 'Approved', '2026-06-10 10:00:00'),
+('LV-402', 'EMP-303', 'Michael Scott', 'Sales', 'Casual Leave', '2026-06-20', '2026-06-22', 2, 'Emergency plumbing repair.', 'Rejected', '2026-06-12 08:30:00'),
+('LV-403', 'EMP-505', 'Ada Lovelace', 'Engineering', 'Medical Leave', '2026-06-14', '2026-06-15', 2, 'Medical wisdom tooth surgery.', 'Approved', '2026-06-13 16:45:00');
 
--- Seed initial diagnostic logs
+-- Seed Data: Audit Logs
 INSERT INTO `audit_logs` (`id`, `timestamp`, `actorName`, `action`, `details`) VALUES
-('LOG-001', '2026-06-13T17:10:00.000Z', 'Imran Tar', 'APPROVE_LEAVE', 'Approved Sick leave request LV-403 for Ada Lovelace (Duration: 2 days)'),
-('LOG-002', '2026-06-14T11:20:00.000Z', 'Michael Scott', 'SUBMIT_LEAVE', 'Submitted Pending Annual leave request LV-404 (Duration: 5 days)');
-
--- Validate data rows built correctly
-SELECT 'SUCCESS: ELMS MySQL Schema and Seed Ledger Ready for Thesis Code integration!' AS `Security_Status`;
+('LOG-001', '2026-06-13 17:10:00', 'Imran Tar', 'APPROVE_LEAVE', 'Approved Medical Leave request LV-403 for Ada Lovelace (Duration: 2 days)');

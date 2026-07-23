@@ -369,8 +369,8 @@ export default function AdminDashboard({
             <div className="space-y-4">
               <div className="flex flex-col sm:flex-row justify-between items-baseline gap-2">
                 <div>
-                  <h4 className="font-semibold text-slate-850 text-sm">Employee Leaves Balances Ledger</h4>
-                  <p className="text-xs text-slate-500">Live active calculated credit days for each registered account, dynamically synchronised.</p>
+                  <h4 className="font-semibold text-slate-800 text-sm">Employee Balances</h4>
+                  <p className="text-xs text-slate-500">Active employee accounts and calculated leave balances.</p>
                 </div>
 
                 <div className="relative w-full sm:w-64">
@@ -391,28 +391,30 @@ export default function AdminDashboard({
                 <table className="w-full text-left text-xs border-collapse">
                   <thead>
                     <tr className="bg-slate-50 border-b border-slate-150 text-slate-400 font-mono uppercase text-[10px]">
-                      <th className="px-4 py-3">Employee ID</th>
-                      <th className="px-4 py-3">Name details</th>
-                      <th className="px-4 py-3">Department</th>
-                      <th className="px-4 py-3">Role</th>
-                      <th className="px-4 py-3 text-center">Annual</th>
-                      <th className="px-4 py-3 text-center">Sick</th>
-                      <th className="px-4 py-3 text-center">Casual</th>
-                      <th className="px-4 py-3 text-center">Parental</th>
-                      <th className="px-5 py-3 text-center text-slate-400">Unpaid</th>
+                      <th className="px-3 py-3">Employee ID</th>
+                      <th className="px-3 py-3">Name details</th>
+                      <th className="px-3 py-3">Department</th>
+                      <th className="px-3 py-3">Role</th>
+                      <th className="px-3 py-3 text-center">Earn</th>
+                      <th className="px-3 py-3 text-center">Casual</th>
+                      <th className="px-3 py-3 text-center">Maternity</th>
+                      <th className="px-3 py-3 text-center">Medical</th>
+                      <th className="px-3 py-3 text-center">Duty</th>
+                      <th className="px-3 py-3 text-center">Unpaid</th>
+                      <th className="px-3 py-3 text-center">Other</th>
                     </tr>
                   </thead>
                   
                   <tbody className="divide-y divide-slate-100 font-sans">
                     {filteredEmployees.map(emp => (
                       <tr key={emp.id} className="hover:bg-slate-50/50 transition">
-                        <td className="px-4 py-3.5 font-mono font-semibold text-slate-700">{emp.id}</td>
-                        <td className="px-4 py-3.5">
+                        <td className="px-3 py-3.5 font-mono font-semibold text-slate-700">{emp.id}</td>
+                        <td className="px-3 py-3.5">
                           <span className="font-semibold text-slate-900 block">{emp.name}</span>
                           <span className="text-slate-400 text-[10px] block mt-0.5">{emp.email}</span>
                         </td>
-                        <td className="px-4 py-3.5 text-slate-650 font-medium">{emp.department}</td>
-                        <td className="px-4 py-3.5">
+                        <td className="px-3 py-3.5 text-slate-650 font-medium">{emp.department}</td>
+                        <td className="px-3 py-3.5">
                           <span className={`px-2 py-0.5 rounded text-[10px] font-semibold ${
                             emp.role === 'HR Admin' ? 'bg-indigo-50 text-indigo-700' :
                             emp.role === 'Manager' ? 'bg-violet-50 text-violet-700' :
@@ -421,11 +423,13 @@ export default function AdminDashboard({
                             {emp.role}
                           </span>
                         </td>
-                        <td className="px-4 py-3.5 text-center font-mono font-bold text-indigo-950">{emp.balances.Annual}</td>
-                        <td className="px-4 py-3.5 text-center font-mono font-bold text-rose-700">{emp.balances.Sick}</td>
-                        <td className="px-4 py-3.5 text-center font-mono font-bold text-amber-700">{emp.balances.Casual}</td>
-                        <td className="px-4 py-3.5 text-center font-mono font-bold text-violet-700">{emp.balances.Parental}</td>
-                        <td className="px-5 py-3.5 text-center font-mono text-slate-500">{emp.balances.Unpaid}</td>
+                        <td className="px-3 py-3.5 text-center font-mono font-bold text-indigo-950">{emp.balances['Earn Leave'] ?? 0}</td>
+                        <td className="px-3 py-3.5 text-center font-mono font-bold text-amber-700">{emp.balances['Casual Leave'] ?? 0}</td>
+                        <td className="px-3 py-3.5 text-center font-mono font-bold text-pink-700">{emp.balances['Maternity Leave'] ?? 0}</td>
+                        <td className="px-3 py-3.5 text-center font-mono font-bold text-rose-700">{emp.balances['Medical Leave'] ?? 0}</td>
+                        <td className="px-3 py-3.5 text-center font-mono font-bold text-emerald-700">{emp.balances['Duty Leave'] ?? 0}</td>
+                        <td className="px-3 py-3.5 text-center font-mono text-slate-500">{emp.balances['Unpaid Leave of Absence'] ?? 0}</td>
+                        <td className="px-3 py-3.5 text-center font-mono font-bold text-purple-700">{emp.balances['Other Leave'] ?? 0}</td>
                       </tr>
                     ))}
                     {filteredEmployees.length === 0 && (
@@ -446,8 +450,8 @@ export default function AdminDashboard({
             <div className="space-y-4">
               <div className="flex justify-between items-baseline gap-2">
                 <div>
-                  <h4 className="font-semibold text-slate-850 text-sm">System Holiday Requests Ledger</h4>
-                  <p className="text-xs text-slate-500">History of all requested leave instances recorded inside the system database.</p>
+                  <h4 className="font-semibold text-slate-800 text-sm">Leave Requests</h4>
+                  <p className="text-xs text-slate-500">History of leave requests.</p>
                 </div>
 
                 <div className="flex gap-2 items-center">

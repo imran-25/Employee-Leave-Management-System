@@ -297,7 +297,7 @@ export default function App() {
       <footer className="bg-slate-900 border-t border-slate-800 py-6 text-center text-xs text-slate-400 font-mono">
         <div className="max-w-7xl mx-auto px-4">
           <p>© 2026 Employee Leave Management System (ELMS) — An MIS Enterprise Approach.</p>
-          <p className="text-slate-550 mt-1">Designed by Systems Administrator imrani.tar@gmail.com with Google Gemini AI Studio</p>
+          <p className="text-slate-550 mt-1">Designed by Systems Administrator Mohaiminul Islam</p>
         </div>
       </footer>
 

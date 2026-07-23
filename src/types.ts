@@ -16,14 +16,23 @@ export enum LeaveStatus {
   REJECTED = 'Rejected'
 }
 
-export type LeaveType = 'Annual' | 'Sick' | 'Casual' | 'Parental' | 'Unpaid';
+export type LeaveType = 
+  | 'Earn Leave' 
+  | 'Casual Leave' 
+  | 'Maternity Leave' 
+  | 'Medical Leave' 
+  | 'Duty Leave' 
+  | 'Unpaid Leave of Absence' 
+  | 'Other Leave';
 
 export interface LeaveBalances {
-  Annual: number;
-  Sick: number;
-  Casual: number;
-  Parental: number;
-  Unpaid: number; // usually infinite but tracked
+  'Earn Leave': number;
+  'Casual Leave': number;
+  'Maternity Leave': number;
+  'Medical Leave': number;
+  'Duty Leave': number;
+  'Unpaid Leave of Absence': number;
+  'Other Leave': number;
 }
 
 export interface Employee {

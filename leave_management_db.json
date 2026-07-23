@@ -1,0 +1,207 @@
+{
+  "employees": [
+    {
+      "id": "EMP-101",
+      "name": "Imran Tar",
+      "email": "imrani.tar@gmail.com",
+      "password": "password123",
+      "role": "HR Admin",
+      "department": "Human Resources",
+      "joinDate": "2023-03-10",
+      "balances": {
+        "Earn Leave": 18,
+        "Casual Leave": 8,
+        "Maternity Leave": 120,
+        "Medical Leave": 12,
+        "Duty Leave": 15,
+        "Unpaid Leave of Absence": 30,
+        "Other Leave": 10
+      }
+    },
+    {
+      "id": "EMP-202",
+      "name": "Mohaiminul Islam",
+      "email": "mohaiminul Islam@gmail.com",
+      "password": "password123",
+      "role": "Manager",
+      "department": "Operations",
+      "joinDate": "2023-01-15",
+      "balances": {
+        "Earn Leave": 12,
+        "Casual Leave": 10,
+        "Maternity Leave": 120,
+        "Medical Leave": 14,
+        "Duty Leave": 15,
+        "Unpaid Leave of Absence": 30,
+        "Other Leave": 10
+      }
+    },
+    {
+      "id": "EMP-303",
+      "name": "Asif Bannah",
+      "email": "asif@gmail.com",
+      "password": "password123",
+      "role": "Employee",
+      "department": "Sales",
+      "joinDate": "2022-04-01",
+      "balances": {
+        "Earn Leave": 15,
+        "Casual Leave": 6,
+        "Maternity Leave": 120,
+        "Medical Leave": 10,
+        "Duty Leave": 15,
+        "Unpaid Leave of Absence": 30,
+        "Other Leave": 10
+      }
+    },
+    {
+      "id": "EMP-404",
+      "name": "Shafiq Rahman",
+      "email": "shafiq@gmail.com.edu",
+      "password": "password123",
+      "role": "Employee",
+      "department": "Engineering",
+      "joinDate": "2024-02-12",
+      "balances": {
+        "Earn Leave": 15,
+        "Casual Leave": 8,
+        "Maternity Leave": 120,
+        "Medical Leave": 14,
+        "Duty Leave": 15,
+        "Unpaid Leave of Absence": 30,
+        "Other Leave": 10
+      }
+    },
+    {
+      "id": "EMP-505",
+      "name": "Moin Uddin",
+      "email": "moin.uddin@gmail.com",
+      "password": "password123",
+      "role": "Employee",
+      "department": "Engineering",
+      "joinDate": "2024-05-18",
+      "balances": {
+        "Earn Leave": 18,
+        "Casual Leave": 8,
+        "Maternity Leave": 120,
+        "Medical Leave": 12,
+        "Duty Leave": 15,
+        "Unpaid Leave of Absence": 30,
+        "Other Leave": 10
+      }
+    }
+  ],
+  "leaves": [
+    {
+      "id": "LV-401",
+      "employeeId": "EMP-404",
+      "employeeName": "Sujon Sardar",
+      "department": "Engineering",
+      "leaveType": "Earn Leave",
+      "startDate": "2026-07-10",
+      "endDate": "2026-07-15",
+      "duration": 5,
+      "reason": "Summer holiday hiking in the Lake District and visiting parents.",
+      "refinedReason": "Formal Request: Earn Leave Submission for vacation.",
+      "status": "Approved",
+      "requestedAt": "2026-06-10T10:00:00.000Z",
+      "approvedOrRejectedAt": "2026-06-11T14:30:00.000Z",
+      "approverName": "Sarah Connor",
+      "approverRemarks": "Approved. Deliverables reassigned."
+    },
+    {
+      "id": "LV-402",
+      "employeeId": "EMP-303",
+      "employeeName": "shawon",
+      "department": "Sales",
+      "leaveType": "Casual Leave",
+      "startDate": "2026-06-20",
+      "endDate": "2026-06-22",
+      "duration": 2,
+      "reason": "Emergency personal plumbing repair at my residence.",
+      "refinedReason": "Urgent Casual Leave Request: Home Maintenance Emergency",
+      "status": "Rejected",
+      "requestedAt": "2026-06-12T08:30:00.000Z",
+      "approvedOrRejectedAt": "2026-06-13T09:15:00.000Z",
+      "approverName": "Sarah Connor",
+      "approverRemarks": "Rejected due to end-of-quarter sales drive."
+    },
+    {
+      "id": "LV-403",
+      "employeeId": "EMP-505",
+      "employeeName": "nowshin jahan",
+      "department": "Engineering",
+      "leaveType": "Medical Leave",
+      "startDate": "2026-06-14",
+      "endDate": "2026-06-15",
+      "duration": 2,
+      "reason": "Wisdom tooth extraction surgery and doctor mandated rest.",
+      "refinedReason": "Notification of Medical Leave: Dental Surgery",
+      "status": "Approved",
+      "requestedAt": "2026-06-13T16:45:00.000Z",
+      "approvedOrRejectedAt": "2026-06-13T17:10:00.000Z",
+      "approverName": "Imran Tar",
+      "approverRemarks": "Approved. Speedy recovery, Ada."
+    }
+  ],
+  "policies": [
+    {
+      "leaveType": "Earn Leave",
+      "yearlyLimit": 20,
+      "maxConsecutiveDays": 14,
+      "requiresDocumentation": false,
+      "description": "Earned paid leave accumulated over service time."
+    },
+    {
+      "leaveType": "Casual Leave",
+      "yearlyLimit": 10,
+      "maxConsecutiveDays": 3,
+      "requiresDocumentation": false,
+      "description": "Leave for short-term urgent personal matters."
+    },
+    {
+      "leaveType": "Maternity Leave",
+      "yearlyLimit": 120,
+      "maxConsecutiveDays": 90,
+      "requiresDocumentation": true,
+      "description": "Paid maternity leave for female employees."
+    },
+    {
+      "leaveType": "Medical Leave",
+      "yearlyLimit": 14,
+      "maxConsecutiveDays": 7,
+      "requiresDocumentation": true,
+      "description": "Paid sick leave for illness, surgery, or medical recovery."
+    },
+    {
+      "leaveType": "Duty Leave",
+      "yearlyLimit": 15,
+      "maxConsecutiveDays": 10,
+      "requiresDocumentation": false,
+      "description": "Leave granted for official duties or external assignments."
+    },
+    {
+      "leaveType": "Unpaid Leave of Absence",
+      "yearlyLimit": 30,
+      "maxConsecutiveDays": 30,
+      "requiresDocumentation": false,
+      "description": "Extended leave of absence without pay."
+    },
+    {
+      "leaveType": "Other Leave",
+      "yearlyLimit": 10,
+      "maxConsecutiveDays": 5,
+      "requiresDocumentation": false,
+      "description": "Miscellaneous leave requiring special approval."
+    }
+  ],
+  "auditLogs": [
+    {
+      "id": "LOG-001",
+      "timestamp": "2026-06-13T17:10:00.000Z",
+      "actorName": "Imran Tar",
+      "action": "APPROVE_LEAVE",
+      "details": "Approved Medical Leave request LV-403 for Ada Lovelace (Duration: 2 days)"
+    }
+  ]
+}

@@ -7,7 +7,7 @@ import express from 'express';
 import path from 'path';
 import { createServer as createViteServer } from 'vite';
 import { GoogleGenAI } from '@google/genai';
-import { getDatabase, writeDatabase, resetDatabase, initDatabaseConnection } from './server_db.js';
+import { getDatabase, writeDatabase, resetDatabase, initDatabaseConnection, getDatabaseStatus } from './server_db.js';
 import { TargetRole, LeaveStatus, LeaveType, LeaveRequest, AuditLog } from './src/types.js';
 
 // Load environment variables
@@ -53,6 +53,16 @@ app.get('/api/db', (req, res) => {
   }
 });
 
+// 1b. Check live MySQL database status & diagnostics
+app.get('/api/db/status', async (req, res) => {
+  try {
+    const status = await getDatabaseStatus();
+    res.json(status);
+  } catch (err: any) {
+    res.status(500).json({ error: 'Failed to check database status', message: err.message });
+  }
+});
+
 // 2. Reset database state
 app.post('/api/db/reset', (req, res) => {
   try {
@@ -93,8 +103,8 @@ app.post('/api/leaves/apply', (req, res) => {
     const balanceAttr = leaveType as LeaveType;
     const currentBalance = employee.balances[balanceAttr] || 0;
     
-    // Unpaid leaves don't strictly require balances, but we'll check others
-    if (leaveType !== 'Unpaid' && currentBalance < duration) {
+    // Unpaid leave doesn't strictly deduct balances, but we'll check others
+    if (leaveType !== 'Unpaid Leave of Absence' && currentBalance < duration) {
       return res.status(400).json({ 
         error: `Insufficient Leave Balance`, 
         message: `You currently have ${currentBalance} days of ${leaveType} leave remaining, but are requesting ${duration} days.` 
@@ -167,11 +177,13 @@ app.post('/api/auth/register', (req, res) => {
       department,
       joinDate: new Date().toISOString().split('T')[0],
       balances: {
-        Annual: 20,
-        Sick: 10,
-        Casual: 7,
-        Parental: 60,
-        Unpaid: 30
+        'Earn Leave': 20,
+        'Casual Leave': 10,
+        'Maternity Leave': 120,
+        'Medical Leave': 14,
+        'Duty Leave': 15,
+        'Unpaid Leave of Absence': 30,
+        'Other Leave': 10
       }
     };
 
@@ -254,8 +266,8 @@ app.post('/api/leaves/approve', (req, res) => {
     const balanceAttr = leave.leaveType as LeaveType;
     const currentBalance = employee.balances[balanceAttr] || 0;
 
-    // Validate balance update (Unpaid doesn't subtract, custom operations deduct others)
-    if (leave.leaveType !== 'Unpaid') {
+    // Validate balance update (Unpaid Leave of Absence doesn't subtract, custom operations deduct others)
+    if (leave.leaveType !== 'Unpaid Leave of Absence') {
       if (currentBalance < leave.duration) {
         return res.status(400).json({ 
           error: 'Insufficient Balance at Approval', 
@@ -265,7 +277,7 @@ app.post('/api/leaves/approve', (req, res) => {
       employee.balances[balanceAttr] = currentBalance - leave.duration;
     } else {
       // Just track unpaid days remaining
-      employee.balances.Unpaid = Math.max(0, employee.balances.Unpaid - leave.duration);
+      employee.balances['Unpaid Leave of Absence'] = Math.max(0, employee.balances['Unpaid Leave of Absence'] - leave.duration);
     }
 
     // Update leave request state
